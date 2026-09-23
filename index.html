@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>바퀴벌레 과자 뷔페 (Roach Cookie Buffet)</title>
+    <title>바퀴벌레 잡기 시뮬레이션 (Roach Simulation)</title>
     <!-- Tailwind CSS for modern responsive UI styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for icons -->
@@ -89,47 +89,14 @@
     <canvas id="gameCanvas" class="absolute inset-0 z-0 cursor-pointer w-full h-full"></canvas>
 
     <!-- Top HUD Navigation & Stats Bar -->
-    <div class="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
-        
-        <!-- Left Title & Counter Badges -->
-        <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-4 pointer-events-auto shadow-lg">
-            <div class="flex items-center gap-2">
-                <span class="text-2xl animate-bounce">🪳</span>
-                <div>
-                    <h1 class="text-sm font-bold text-amber-400 leading-tight">바퀴벌레 과자 뷔페</h1>
-                    <p class="text-xs text-slate-400 hidden sm:block">화면을 클릭해 과자를 주세요!</p>
-                </div>
-            </div>
-
-            <div class="h-6 w-[1px] bg-slate-700 mx-1"></div>
-
-            <div class="flex items-center gap-3 text-xs">
-                <div class="flex items-center gap-1.5" title="현재 과자 수">
-                    <span class="text-amber-300">🍪</span>
-                    <span id="stat-snacks" class="font-mono font-bold text-white">0</span>
-                </div>
-                <div class="flex items-center gap-1.5" title="바퀴벌레 개체수">
-                    <span class="text-amber-600">🪳</span>
-                    <span id="stat-roaches" class="font-mono font-bold text-white">0</span>
-                </div>
-                <div class="flex items-center gap-1.5" title="먹은 과자 수">
-                    <span class="text-emerald-400">😋</span>
-                    <span id="stat-eaten" class="font-mono font-bold text-white">0</span>
-                </div>
-            </div>
-        </div>
+    <div class="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-end gap-3 pointer-events-none">
 
         <!-- Right Quick Action Controls -->
-        <div class="glass-panel p-1.5 rounded-2xl flex items-center gap-2 pointer-events-auto shadow-lg">
+        <div class="glass-panel p-1.5 rounded-2xl flex items-center gap-2 pointer-events-auto shadow-lg flex-wrap">
             <!-- Light Switch Button -->
-            <button id="btn-light" class="flex items-center gap-1.5 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-medium transition active:scale-95" title="전등 스위치 (불을 켜면 바퀴벌레가 도망칩니다!)">
+            <button id="btn-light" class="flex items-center gap-1.5 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-semibold transition active:scale-95" title="전등 스위치 (불을 켜면 바퀴벌레가 도망칩니다!)">
                 <i id="icon-light" class="fa-solid fa-lightbulb text-amber-400"></i>
-                <span id="label-light" class="hidden md:inline">불켜기</span>
-            </button>
-
-            <!-- Sound Toggle -->
-            <button id="btn-sound" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs transition active:scale-95" title="음향 효과 켜기/끄기">
-                <i id="icon-sound" class="fa-solid fa-volume-high"></i>
+                <span id="label-light">불켜기</span>
             </button>
 
             <!-- Spawn Roach Button -->
@@ -143,41 +110,122 @@
                 <i class="fa-solid fa-broom mr-1"></i>
                 <span>청소</span>
             </button>
+
+            <!-- Sound Toggle -->
+            <button id="btn-sound" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs transition active:scale-95" title="음향 효과 켜기/끄기">
+                <i id="icon-sound" class="fa-solid fa-volume-high"></i>
+            </button>
+
+            <!-- Settings Button -->
+            <button id="btn-toggle-settings" class="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition active:scale-95" title="시뮬레이션 설정">
+                <i class="fa-solid fa-sliders text-amber-400"></i>
+                <span class="hidden md:inline">설정</span>
+            </button>
         </div>
     </div>
 
     <!-- Bottom Floating Snack Selector & Settings Bar -->
-    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-4 pointer-events-none">
-        <div class="glass-panel p-2.5 rounded-3xl flex items-center justify-between gap-2 pointer-events-auto shadow-2xl">
-            
-            <!-- Snack Selector Buttons -->
-            <div class="flex items-center justify-around w-full gap-1" id="snack-selector">
-                <button data-type="cookie" class="snack-btn active p-2.5 rounded-2xl flex flex-col items-center gap-1 transition bg-amber-500/30 text-amber-300 ring-2 ring-amber-400 scale-105">
-                    <span class="text-2xl">🍪</span>
-                    <span class="text-[10px] font-bold">쿠키</span>
+    <div id="bottom-bar-wrapper" class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 w-full max-w-lg px-4 pointer-events-none transition-transform duration-300 ease-in-out">
+        
+        <!-- Toggle Drawer Handle Button -->
+        <div class="flex justify-center pointer-events-auto mb-1">
+            <button id="btn-toggle-drawer" class="bg-slate-900/90 hover:bg-slate-800 text-amber-400 border border-slate-700/80 text-xs px-3 py-1 rounded-t-xl shadow-lg flex items-center gap-1.5 backdrop-blur-md transition active:scale-95" title="도구창 접기/펼치기">
+                <i id="icon-toggle-drawer" class="fa-solid fa-chevron-down text-xs"></i>
+                <span id="label-toggle-drawer" class="text-[10px] font-bold">도구창 접기</span>
+            </button>
+        </div>
+
+        <div class="glass-panel p-3 rounded-3xl flex flex-col gap-2.5 pointer-events-auto shadow-2xl">
+
+            <!-- Tool Mode Selection Switcher -->
+            <div id="tool-selector-bar" class="flex items-center justify-center bg-slate-950/70 p-1 rounded-2xl border border-slate-800 gap-1">
+                <button id="tool-btn-snack" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow">
+                    <span>🍪 과자 놓기 모드</span>
                 </button>
-                <button data-type="pizza" class="snack-btn p-2.5 rounded-2xl flex flex-col items-center gap-1 transition text-slate-400 hover:bg-slate-800/60">
-                    <span class="text-2xl">🍕</span>
-                    <span class="text-[10px] font-bold">피자</span>
+                <button id="tool-btn-spray" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white">
+                    <span>💨 살충제 뿌리기 모드</span>
                 </button>
-                <button data-type="donut" class="snack-btn p-2.5 rounded-2xl flex flex-col items-center gap-1 transition text-slate-400 hover:bg-slate-800/60">
-                    <span class="text-2xl">🍩</span>
-                    <span class="text-[10px] font-bold">도넛</span>
-                </button>
-                <!-- Custom Image Upload Snack Button -->
-                <button id="btn-custom-snack" data-type="custom" class="snack-btn p-2.5 rounded-2xl flex flex-col items-center gap-1 transition text-slate-400 hover:bg-slate-800/60" title="클릭하여 내 이미지 업로드">
-                    <span id="custom-snack-icon" class="text-2xl flex items-center justify-center h-8 w-8">🖼️</span>
-                    <span class="text-[10px] font-bold">내 사진</span>
-                </button>
-                <input type="file" id="input-snack-image" accept="image/*" class="hidden">
             </div>
 
-            <div class="h-8 w-[1px] bg-slate-700 my-auto"></div>
+            <!-- Panel 1: Snack Selector -->
+            <div id="panel-snacks" class="flex items-center justify-between gap-1">
+                <div class="flex items-center justify-around w-full gap-1">
+                    <button data-type="cookie" class="snack-btn active p-2 rounded-2xl flex flex-col items-center gap-0.5 transition bg-amber-500/30 text-amber-300 ring-2 ring-amber-400 scale-105 flex-1">
+                        <span class="text-xl">🍪</span>
+                        <span class="text-[10px] font-bold">쿠키</span>
+                    </button>
+                    <button data-type="pizza" class="snack-btn p-2 rounded-2xl flex flex-col items-center gap-0.5 transition text-slate-400 hover:bg-slate-800/60 flex-1">
+                        <span class="text-xl">🍕</span>
+                        <span class="text-[10px] font-bold">피자</span>
+                    </button>
+                    <button data-type="donut" class="snack-btn p-2 rounded-2xl flex flex-col items-center gap-0.5 transition text-slate-400 hover:bg-slate-800/60 flex-1">
+                        <span class="text-xl">🍩</span>
+                        <span class="text-[10px] font-bold">도넛</span>
+                    </button>
+                    <button id="btn-custom-snack" data-type="custom" class="snack-btn p-2 rounded-2xl flex flex-col items-center gap-0.5 transition text-slate-400 hover:bg-slate-800/60 flex-1" title="클릭하여 내 이미지 업로드">
+                        <span id="custom-snack-icon" class="text-xl flex items-center justify-center h-6 w-6">🖼️</span>
+                        <span class="text-[10px] font-bold">내 사진</span>
+                    </button>
+                    <input type="file" id="input-snack-image" accept="image/*" class="hidden">
+                </div>
+            </div>
 
-            <!-- Settings Toggle Modal Button -->
-            <button id="btn-toggle-settings" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs transition active:scale-95 shrink-0" title="상세 설정">
-                <i class="fa-solid fa-sliders text-base"></i>
-            </button>
+            <!-- Panel 2: Spray Color & Substance Resistance Palette -->
+            <div id="panel-spray" class="flex flex-col gap-1.5">
+                <div class="flex items-center justify-between text-[11px] px-1 text-slate-300">
+                    <span class="font-bold flex items-center gap-1 text-amber-300">
+                        <i class="fa-solid fa-spray-can"></i> 살충제 스프레이 색상
+                    </span>
+                    <span id="spray-status-text" class="text-[10px] text-slate-400">선택한 도구(과자/살충제)로 동작합니다</span>
+                </div>
+                
+                <!-- 7 Chemical Substance Color Buttons -->
+                <div class="grid grid-cols-7 gap-1" id="spray-color-selector">
+                    <!-- Red -->
+                    <button data-color="red" data-hex="#ef4444" class="spray-color-btn active p-1.5 rounded-xl flex flex-col items-center justify-between transition border-2 border-red-400 bg-red-950/60 text-red-300">
+                        <span class="w-3 h-3 rounded-full bg-red-500 shadow"></span>
+                        <span class="text-[9px] font-bold mt-1">빨강</span>
+                        <span class="stat-res text-[8px] opacity-80"></span>
+                    </button>
+                    <!-- Orange -->
+                    <button data-color="orange" data-hex="#f97316" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-700 bg-slate-900/60 text-slate-400">
+                        <span class="w-3 h-3 rounded-full bg-orange-500 shadow"></span>
+                        <span class="text-[9px] font-bold mt-1">주황</span>
+                        <span class="stat-res text-[8px] opacity-80"></span>
+                    </button>
+                    <!-- Yellow -->
+                    <button data-color="yellow" data-hex="#eab308" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-700 bg-slate-900/60 text-slate-400">
+                        <span class="w-3 h-3 rounded-full bg-yellow-400 shadow"></span>
+                        <span class="text-[9px] font-bold mt-1">노랑</span>
+                        <span class="stat-res text-[8px] opacity-80"></span>
+                    </button>
+                    <!-- Green -->
+                    <button data-color="green" data-hex="#22c55e" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-700 bg-slate-900/60 text-slate-400">
+                        <span class="w-3 h-3 rounded-full bg-green-500 shadow"></span>
+                        <span class="text-[9px] font-bold mt-1">초록</span>
+                        <span class="stat-res text-[8px] opacity-80"></span>
+                    </button>
+                    <!-- Blue -->
+                    <button data-color="blue" data-hex="#3b82f6" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-700 bg-slate-900/60 text-slate-400">
+                        <span class="w-3 h-3 rounded-full bg-blue-500 shadow"></span>
+                        <span class="text-[9px] font-bold mt-1">파랑</span>
+                        <span class="stat-res text-[8px] opacity-80"></span>
+                    </button>
+                    <!-- Purple -->
+                    <button data-color="purple" data-hex="#a855f7" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-700 bg-slate-900/60 text-slate-400">
+                        <span class="w-3 h-3 rounded-full bg-purple-500 shadow"></span>
+                        <span class="text-[9px] font-bold mt-1">보라</span>
+                        <span class="stat-res text-[8px] opacity-80"></span>
+                    </button>
+                    <!-- Black (Special) -->
+                    <button data-color="black" data-hex="#18181b" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-700 bg-slate-900/60 text-slate-400" title="바퀴벌레가 내성을 가질 수 없는 특수 물질!">
+                        <span class="w-3 h-3 rounded-full bg-zinc-900 border border-zinc-500 shadow"></span>
+                        <span class="text-[9px] font-bold mt-1 text-zinc-300">검정</span>
+                        <span class="stat-res text-[8px] text-rose-400 font-bold">☠️위험</span>
+                    </button>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -218,15 +266,6 @@
                     <button data-floor="wood" class="floor-opt border-2 border-amber-400 text-xs py-1.5 rounded-xl bg-amber-950/40 text-amber-200">원목 바닥</button>
                     <button data-floor="tile" class="floor-opt border border-slate-700 text-xs py-1.5 rounded-xl bg-slate-800 text-slate-300">타일 바닥</button>
                     <button data-floor="tatami" class="floor-opt border border-slate-700 text-xs py-1.5 rounded-xl bg-green-950/40 text-green-200">다타미</button>
-                </div>
-            </div>
-
-            <!-- Click Action Mode -->
-            <div class="space-y-1.5">
-                <label class="text-xs text-slate-300">클릭 상호작용 모드</label>
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="mode-feed" class="mode-btn border-2 border-amber-400 text-xs py-2 rounded-xl bg-amber-500/20 text-amber-300 font-bold">🍪 과자 놓기</button>
-                    <button id="mode-squish" class="mode-btn border border-slate-700 text-xs py-2 rounded-xl bg-slate-800 text-slate-400 font-bold">💥 잡기/처치</button>
                 </div>
             </div>
 
@@ -308,6 +347,37 @@
                     const gain = this.ctx.createGain();
                     gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    noise.start();
+                } catch (e) {}
+            }
+
+            playSpray() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const bufferSize = Math.floor(this.ctx.sampleRate * 0.05);
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+
+                    const noise = this.ctx.createBufferSource();
+                    noise.buffer = buffer;
+
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'highpass';
+                    filter.frequency.value = 2500;
+
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
 
                     noise.connect(filter);
                     filter.connect(gain);
@@ -457,6 +527,71 @@
             }
         }
 
+        /* Pesticide Spray Aerosol Particles */
+        class SprayParticle {
+            constructor(x, y, colorKey, hex) {
+                this.x = x;
+                this.y = y;
+                this.colorKey = colorKey;
+                this.hex = hex;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 1.5 + Math.random() * 4.5;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.radius = 4 + Math.random() * 8;
+                this.alpha = 0.75;
+                this.decay = 0.02 + Math.random() * 0.025;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vx *= 0.94;
+                this.vy *= 0.94;
+                this.radius += 0.3;
+                this.alpha -= this.decay;
+            }
+
+            draw(ctx) {
+                if (this.alpha <= 0) return;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.fillStyle = this.hex;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, Math.max(0.1, this.radius), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        /* Floating Text for Resistance Feedback */
+        class FloatingText {
+            constructor(x, y, text, color = '#38bdf8') {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.color = color;
+                this.alpha = 1;
+                this.vy = -1.2;
+            }
+
+            update() {
+                this.y += this.vy;
+                this.alpha -= 0.02;
+            }
+
+            draw(ctx) {
+                if (this.alpha <= 0) return;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillStyle = this.color;
+                ctx.textAlign = 'center';
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
         /* Crumb & Goo Particle Effects */
         class Particle {
             constructor(x, y, color, speed = 2) {
@@ -488,19 +623,20 @@
             }
         }
 
-        /* Squished Roach Splat Effect */
+        /* Squished / Poisoned Roach Splat Effect */
         class Splat {
-            constructor(x, y, size) {
+            constructor(x, y, size, color = '#4d7c0f') {
                 this.x = x;
                 this.y = y;
                 this.size = Math.max(1, size);
-                this.alpha = 0.8;
+                this.color = color;
+                this.alpha = 0.85;
             }
 
             draw(ctx) {
                 ctx.save();
                 ctx.globalAlpha = this.alpha;
-                ctx.fillStyle = '#4d7c0f'; // Dark green bug goo
+                ctx.fillStyle = this.color;
                 ctx.beginPath();
                 const splatRx = Math.max(0.1, this.size * 1.2);
                 const splatRy = Math.max(0.1, this.size * 0.7);
@@ -508,7 +644,6 @@
                 ctx.fill();
 
                 // Splatter droplets
-                ctx.fillStyle = '#65a30d';
                 ctx.beginPath();
                 ctx.arc(this.x - this.size * 0.8, this.y - this.size * 0.5, Math.max(0.1, this.size * 0.3), 0, Math.PI * 2);
                 ctx.arc(this.x + this.size * 0.9, this.y + this.size * 0.4, Math.max(0.1, this.size * 0.25), 0, Math.PI * 2);
@@ -542,6 +677,9 @@
                 // Animation Phase
                 this.legPhase = Math.random() * 10;
                 this.antennaWiggle = 0;
+
+                // Resistance Cooldown to prevent spam floating text
+                this.lastImmunityNoticeTime = 0;
 
                 // AI States: 'WANDER', 'SEEK_FOOD', 'EATING', 'FLEE'
                 this.state = 'WANDER';
@@ -692,9 +830,9 @@
                 ctx.fillStyle = 'rgba(0,0,0,0.35)';
                 ctx.fill();
 
-                // Draw Legs (6 Legs, 3 per side, procedural sine wave motion)
+                // Draw Legs (6 Legs, 3 per side) - 90% Reduced Short Legs
                 ctx.strokeStyle = '#2d1810';
-                ctx.lineWidth = Math.max(1.2, 1.5 * (this.bodyLength / 18));
+                ctx.lineWidth = Math.max(1.0, 1.2 * (this.bodyLength / 18));
                 ctx.lineCap = 'round';
 
                 const legPairs = [
@@ -729,7 +867,7 @@
                     ctx.stroke();
                 }
 
-                // Draw Antennae (2 long wiggling whiskers at front)
+                // Draw Antennae (2 wiggling whiskers - 30% shortened)
                 ctx.strokeStyle = '#3e1f13';
                 ctx.lineWidth = 1;
 
@@ -737,10 +875,10 @@
                 ctx.beginPath();
                 ctx.moveTo(this.bodyLength * 0.45, -this.bodyWidth * 0.2);
                 ctx.quadraticCurveTo(
-                    this.bodyLength * 0.9,
-                    -this.bodyWidth * 1.2 + Math.sin(this.antennaWiggle) * 4,
-                    this.bodyLength * 1.5,
-                    -this.bodyWidth * 0.8 + Math.cos(this.antennaWiggle) * 6
+                    this.bodyLength * 0.76,
+                    -this.bodyWidth * 0.85 + Math.sin(this.antennaWiggle) * 3,
+                    this.bodyLength * 1.18,
+                    -this.bodyWidth * 0.55 + Math.cos(this.antennaWiggle) * 4
                 );
                 ctx.stroke();
 
@@ -748,14 +886,14 @@
                 ctx.beginPath();
                 ctx.moveTo(this.bodyLength * 0.45, this.bodyWidth * 0.2);
                 ctx.quadraticCurveTo(
-                    this.bodyLength * 0.9,
-                    this.bodyWidth * 1.2 + Math.cos(this.antennaWiggle) * 4,
-                    this.bodyLength * 1.5,
-                    this.bodyWidth * 0.8 + Math.sin(this.antennaWiggle) * 6
+                    this.bodyLength * 0.76,
+                    this.bodyWidth * 0.85 + Math.cos(this.antennaWiggle) * 3,
+                    this.bodyLength * 1.18,
+                    this.bodyWidth * 0.55 + Math.sin(this.antennaWiggle) * 4
                 );
                 ctx.stroke();
 
-                // Draw Main Body (Abdomen & Thorax gradient)
+                // Draw Main Body
                 const grad = ctx.createLinearGradient(-this.bodyLength * 0.5, 0, this.bodyLength * 0.5, 0);
                 grad.addColorStop(0, '#1c0d06');
                 grad.addColorStop(0.4, '#4a2511');
@@ -782,7 +920,7 @@
                 ctx.ellipse(this.bodyLength * 0.1, -this.bodyWidth * 0.15, this.bodyLength * 0.25, this.bodyWidth * 0.12, -0.2, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Head (Pronotum)
+                // Head
                 ctx.fillStyle = '#2d1408';
                 ctx.beginPath();
                 ctx.arc(this.bodyLength * 0.4, 0, this.bodyWidth * 0.35, 0, Math.PI * 2);
@@ -791,7 +929,7 @@
                 ctx.restore();
             }
 
-            // Check if point (click) hits cockroach
+            // Check if point hits cockroach
             isPointInside(px, py) {
                 const dist = Math.hypot(px - this.x, py - this.y);
                 return dist < Math.max(this.bodyLength, 20);
@@ -809,11 +947,38 @@
                 this.roaches = [];
                 this.snacks = [];
                 this.particles = [];
+                this.sprayParticles = [];
+                this.floatingTexts = [];
                 this.splats = [];
 
-                // Settings & States
+                // Active Tool Mode ('snack' or 'spray')
+                this.activeTool = 'snack';
                 this.selectedSnackType = 'cookie';
-                this.clickMode = 'feed'; // 'feed' or 'squish'
+                
+                // Pesticide Spray Color Selection
+                this.selectedSprayColor = 'red';
+                this.sprayColorHex = '#ef4444';
+
+                // Chemical Death Counters & Resistance Status
+                this.deathsByColor = {
+                    red: 0,
+                    orange: 0,
+                    yellow: 0,
+                    green: 0,
+                    blue: 0,
+                    purple: 0,
+                    black: 0
+                };
+                this.resistantColors = {
+                    red: false,
+                    orange: false,
+                    yellow: false,
+                    green: false,
+                    blue: false,
+                    purple: false,
+                    black: false
+                };
+
                 this.isLightOn = false;
                 this.totalEatenCount = 0;
 
@@ -831,6 +996,9 @@
                 // Bind UI Elements & Events
                 this.bindUI();
 
+                // Mouse / Touch Interaction Pointer Tracking
+                this.bindInteractions();
+
                 // Spawn initial cockroach colony
                 this.spawnRoaches(10);
 
@@ -845,7 +1013,6 @@
 
             spawnRoaches(count) {
                 for (let i = 0; i < count; i++) {
-                    // Spawn roaches near edges
                     let x, y;
                     if (Math.random() < 0.5) {
                         x = Math.random() < 0.5 ? -20 : window.innerWidth + 20;
@@ -865,57 +1032,161 @@
                 }
             }
 
-            handleInteraction(e) {
-                sounds.init();
+            // Check spray and direct hit on roaches
+            checkRoachSprayHit(roach, rIdx, x, y) {
+                const cKey = this.selectedSprayColor;
 
-                const rect = this.canvas.getBoundingClientRect();
-                const clientX = e.clientX - rect.left;
-                const clientY = e.clientY - rect.top;
+                if (cKey !== 'black' && this.resistantColors[cKey]) {
+                    const now = Date.now();
+                    if (now - roach.lastImmunityNoticeTime > 1200) {
+                        roach.lastImmunityNoticeTime = now;
+                        this.floatingTexts.push(new FloatingText(roach.x, roach.y - 12, '🛡️ 내성!', '#38bdf8'));
+                    }
+                } else {
+                    this.splats.push(new Splat(roach.x, roach.y, roach.bodyLength, this.sprayColorHex));
+                    this.roaches.splice(rIdx, 1);
+                    sounds.playSquish();
 
-                if (this.clickMode === 'squish') {
-                    // Check if clicked on a non-hiding roach
+                    for (let p = 0; p < 8; p++) {
+                        this.particles.push(new Particle(roach.x, roach.y, this.sprayColorHex, 4));
+                    }
+
+                    this.deathsByColor[cKey]++;
+
+                    if (cKey !== 'black' && this.deathsByColor[cKey] >= 10 && !this.resistantColors[cKey]) {
+                        this.resistantColors[cKey] = true;
+                        this.floatingTexts.push(new FloatingText(roach.x, roach.y - 20, '⚠️ 군집 내성 획득!', '#f59e0b'));
+                    }
+
+                    this.updateResistanceUI();
+                    this.updateStats();
+                }
+            }
+
+            // SEPARATED INTERACTION: Execute action depending on active tool
+            handleInteraction(clientX, clientY) {
+                if (this.activeTool === 'snack') {
                     let squishedAny = false;
+
+                    // Check direct tap on cockroach
                     for (let i = this.roaches.length - 1; i >= 0; i--) {
                         if (!this.roaches[i].isHiding && this.roaches[i].isPointInside(clientX, clientY)) {
-                            const r = this.roaches[i];
-                            this.splats.push(new Splat(r.x, r.y, r.bodyLength));
-                            this.roaches.splice(i, 1);
-                            sounds.playSquish();
+                            this.checkRoachSprayHit(this.roaches[i], i, clientX, clientY);
                             squishedAny = true;
-
-                            // Spawn green blood particles
-                            for (let p = 0; p < 12; p++) {
-                                this.particles.push(new Particle(r.x, r.y, '#84cc16', 5));
-                            }
                             break;
                         }
                     }
 
+                    // Drop Snack on floor without emitting pesticide spray
                     if (!squishedAny) {
-                        sounds.playClick();
-                    }
-                } else {
-                    // Drop Snack Mode
-                    const newSnack = new Snack(clientX, clientY, this.selectedSnackType);
-                    this.snacks.push(newSnack);
-                    sounds.playPop();
+                        const newSnack = new Snack(clientX, clientY, this.selectedSnackType);
+                        this.snacks.push(newSnack);
+                        sounds.playPop();
 
-                    // Spawn drop particles
-                    for (let i = 0; i < 8; i++) {
-                        this.particles.push(new Particle(clientX, clientY, newSnack.info.crumbs, 4));
+                        for (let i = 0; i < 8; i++) {
+                            this.particles.push(new Particle(clientX, clientY, newSnack.info.crumbs, 4));
+                        }
+                    }
+                } else if (this.activeTool === 'spray') {
+                    // Emit spray particles only
+                    this.emitSpray(clientX, clientY);
+
+                    // Check spray contact hits
+                    for (let i = this.roaches.length - 1; i >= 0; i--) {
+                        if (!this.roaches[i].isHiding && this.roaches[i].isPointInside(clientX, clientY)) {
+                            this.checkRoachSprayHit(this.roaches[i], i, clientX, clientY);
+                        }
                     }
                 }
 
                 this.updateStats();
             }
 
-            bindUI() {
-                // Canvas Pointer Listener (handles touch and mouse smoothly)
-                this.canvas.addEventListener('pointerdown', (e) => {
-                    const modal = document.getElementById('settings-modal');
-                    if (!modal.classList.contains('hidden')) return;
+            bindInteractions() {
+                let isPointerDown = false;
+                let lastSnackPos = { x: 0, y: 0 };
 
-                    this.handleInteraction(e);
+                this.canvas.addEventListener('pointerdown', (e) => {
+                    isPointerDown = true;
+                    lastSnackPos = { x: e.clientX, y: e.clientY };
+                    this.handleInteraction(e.clientX, e.clientY);
+                });
+
+                this.canvas.addEventListener('pointermove', (e) => {
+                    if (isPointerDown) {
+                        if (this.activeTool === 'spray') {
+                            this.emitSpray(e.clientX, e.clientY);
+
+                            for (let i = this.roaches.length - 1; i >= 0; i--) {
+                                if (!this.roaches[i].isHiding && this.roaches[i].isPointInside(e.clientX, e.clientY)) {
+                                    this.checkRoachSprayHit(this.roaches[i], i, e.clientX, e.clientY);
+                                }
+                            }
+                        } else if (this.activeTool === 'snack') {
+                            const dist = Math.hypot(e.clientX - lastSnackPos.x, e.clientY - lastSnackPos.y);
+                            if (dist > 45) {
+                                lastSnackPos = { x: e.clientX, y: e.clientY };
+                                this.handleInteraction(e.clientX, e.clientY);
+                            }
+                        }
+                    }
+                });
+
+                window.addEventListener('pointerup', () => { isPointerDown = false; });
+                window.addEventListener('pointercancel', () => { isPointerDown = false; });
+            }
+
+            // Emit Pesticide Spray Aerosol Particles
+            emitSpray(x, y) {
+                sounds.playSpray();
+                for (let i = 0; i < 4; i++) {
+                    this.sprayParticles.push(new SprayParticle(x, y, this.selectedSprayColor, this.sprayColorHex));
+                }
+            }
+
+            // Helper method to set active tool UI highlight
+            setTool(tool) {
+                this.activeTool = tool;
+                const btnSnack = document.getElementById('tool-btn-snack');
+                const btnSpray = document.getElementById('tool-btn-spray');
+
+                if (tool === 'snack') {
+                    btnSnack.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow';
+                    btnSpray.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white';
+                } else {
+                    btnSpray.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow';
+                    btnSnack.className = 'flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white';
+                }
+            }
+
+            bindUI() {
+                // Tool Toggle Buttons
+                document.getElementById('tool-btn-snack').addEventListener('click', () => {
+                    this.setTool('snack');
+                    sounds.playClick();
+                });
+                document.getElementById('tool-btn-spray').addEventListener('click', () => {
+                    this.setTool('spray');
+                    sounds.playClick();
+                });
+
+                // Spray Color Palette Selection
+                const sprayColorBtns = document.querySelectorAll('.spray-color-btn');
+                sprayColorBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const target = e.currentTarget;
+                        sprayColorBtns.forEach(b => {
+                            b.classList.remove('active', 'border-2', 'border-amber-400', 'bg-amber-950/60');
+                            b.classList.add('border-slate-700', 'bg-slate-900/60');
+                        });
+                        target.classList.add('active', 'border-2', 'border-amber-400');
+                        target.classList.remove('border-slate-700');
+
+                        this.selectedSprayColor = target.dataset.color;
+                        this.sprayColorHex = target.dataset.hex;
+                        this.setTool('spray'); // Switch automatically to spray mode when selecting color
+                        sounds.playClick();
+                    });
                 });
 
                 // Snack Selector Buttons
@@ -928,7 +1199,6 @@
                     btn.addEventListener('click', (e) => {
                         const target = e.currentTarget;
 
-                        // Handle Custom Image Snack selection / upload
                         if (target.dataset.type === 'custom') {
                             if (!window.customSnackImage) {
                                 fileInput.click();
@@ -944,16 +1214,15 @@
                         target.classList.remove('text-slate-400');
 
                         this.selectedSnackType = target.dataset.type;
+                        this.setTool('snack'); // Switch automatically to snack mode when selecting snack
                         sounds.playClick();
                     });
                 });
 
-                // Click or double click custom button to change uploaded image
                 customBtn.addEventListener('dblclick', () => {
                     fileInput.click();
                 });
 
-                // Handle File Input Selection
                 fileInput.addEventListener('change', (e) => {
                     const file = e.target.files[0];
                     if (file) {
@@ -962,9 +1231,7 @@
                             const img = new Image();
                             img.onload = () => {
                                 window.customSnackImage = img;
-                                customIcon.innerHTML = `<img src="${event.target.result}" class="w-7 h-7 object-cover rounded-full border border-amber-400 shadow">`;
-                                
-                                // Activate custom snack button
+                                customIcon.innerHTML = `<img src="${event.target.result}" class="w-6 h-6 object-cover rounded-full border border-amber-400 shadow">`;
                                 customBtn.click();
                             };
                             img.src = event.target.result;
@@ -1009,6 +1276,29 @@
                     }
                 });
 
+                // Bottom Drawer Toggle
+                const drawerWrapper = document.getElementById('bottom-bar-wrapper');
+                const btnToggleDrawer = document.getElementById('btn-toggle-drawer');
+                const iconToggleDrawer = document.getElementById('icon-toggle-drawer');
+                const labelToggleDrawer = document.getElementById('label-toggle-drawer');
+                let isDrawerCollapsed = false;
+
+                btnToggleDrawer.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    isDrawerCollapsed = !isDrawerCollapsed;
+                    sounds.playClick();
+
+                    if (isDrawerCollapsed) {
+                        drawerWrapper.classList.add('translate-y-[82%]');
+                        iconToggleDrawer.className = 'fa-solid fa-chevron-up text-xs';
+                        labelToggleDrawer.textContent = '도구창 열기';
+                    } else {
+                        drawerWrapper.classList.remove('translate-y-[82%]');
+                        iconToggleDrawer.className = 'fa-solid fa-chevron-down text-xs';
+                        labelToggleDrawer.textContent = '도구창 접기';
+                    }
+                });
+
                 // Add Roach Button (+1)
                 document.getElementById('btn-add-roach').addEventListener('click', () => {
                     this.spawnRoaches(1);
@@ -1020,6 +1310,7 @@
                     this.snacks = [];
                     this.splats = [];
                     this.particles = [];
+                    this.sprayParticles = [];
                     sounds.playClick();
                     this.updateStats();
                 });
@@ -1073,41 +1364,57 @@
                     });
                 });
 
-                // Interaction Mode Buttons (Feed vs Squish)
-                const modeFeed = document.getElementById('mode-feed');
-                const modeSquish = document.getElementById('mode-squish');
-
-                modeFeed.addEventListener('click', () => {
-                    this.clickMode = 'feed';
-                    modeFeed.className = 'mode-btn border-2 border-amber-400 text-xs py-2 rounded-xl bg-amber-500/20 text-amber-300 font-bold';
-                    modeSquish.className = 'mode-btn border border-slate-700 text-xs py-2 rounded-xl bg-slate-800 text-slate-400 font-bold';
-                    sounds.playClick();
-                });
-
-                modeSquish.addEventListener('click', () => {
-                    this.clickMode = 'squish';
-                    modeSquish.className = 'mode-btn border-2 border-rose-500 text-xs py-2 rounded-xl bg-rose-500/20 text-rose-300 font-bold';
-                    modeFeed.className = 'mode-btn border border-slate-700 text-xs py-2 rounded-xl bg-slate-800 text-slate-400 font-bold';
-                    sounds.playClick();
-                });
-
                 // Reset All Button
                 document.getElementById('btn-reset-all').addEventListener('click', () => {
                     this.roaches = [];
                     this.snacks = [];
                     this.splats = [];
                     this.particles = [];
+                    this.sprayParticles = [];
+                    this.floatingTexts = [];
                     this.totalEatenCount = 0;
+                    
+                    // Reset resistance counters
+                    Object.keys(this.deathsByColor).forEach(k => {
+                        this.deathsByColor[k] = 0;
+                        this.resistantColors[k] = false;
+                    });
+                    this.updateResistanceUI();
+
                     this.spawnRoaches(10);
                     modal.classList.add('hidden');
                     sounds.playClick();
                 });
             }
 
+            // Update UI Resistance Status Badges
+            updateResistanceUI() {
+                const colorBtns = document.querySelectorAll('.spray-color-btn');
+                colorBtns.forEach(btn => {
+                    const c = btn.dataset.color;
+                    const statEl = btn.querySelector('.stat-res');
+                    if (statEl) {
+                        if (c === 'black') {
+                            statEl.textContent = '☠️위험';
+                            statEl.className = 'stat-res text-[8px] text-rose-400 font-bold';
+                        } else if (this.resistantColors[c]) {
+                            statEl.textContent = '🛡️내성';
+                            statEl.className = 'stat-res text-[8px] text-sky-400 font-bold animate-pulse';
+                        } else {
+                            statEl.textContent = '';
+                            statEl.className = 'stat-res text-[8px] opacity-80';
+                        }
+                    }
+                });
+            }
+
             updateStats() {
-                document.getElementById('stat-snacks').textContent = this.snacks.length;
-                document.getElementById('stat-roaches').textContent = this.roaches.length;
-                document.getElementById('stat-eaten').textContent = this.totalEatenCount;
+                const sSnacks = document.getElementById('stat-snacks');
+                const sRoaches = document.getElementById('stat-roaches');
+                const sEaten = document.getElementById('stat-eaten');
+                if (sSnacks) sSnacks.textContent = this.snacks.length;
+                if (sRoaches) sRoaches.textContent = this.roaches.length;
+                if (sEaten) sEaten.textContent = this.totalEatenCount;
             }
 
             loop() {
@@ -1124,7 +1431,6 @@
                     const snack = this.snacks[i];
                     snack.update();
 
-                    // Remove snack when fully eaten before attempting to render
                     if (snack.hp <= 0 || snack.radius <= 0) {
                         this.snacks.splice(i, 1);
                         this.totalEatenCount++;
@@ -1135,14 +1441,72 @@
                     snack.draw(this.ctx);
                 }
 
-                // 3. Update & Draw Cockroaches
+                // 3. Update & Draw Pesticide Particles & Check Roach Collision
+                for (let i = this.sprayParticles.length - 1; i >= 0; i--) {
+                    const sp = this.sprayParticles[i];
+                    sp.update();
+                    sp.draw(this.ctx);
+
+                    if (sp.alpha <= 0) {
+                        this.sprayParticles.splice(i, 1);
+                        continue;
+                    }
+
+                    // Check collision with cockroaches
+                    for (let rIdx = this.roaches.length - 1; rIdx >= 0; rIdx--) {
+                        const roach = this.roaches[rIdx];
+                        if (roach.isHiding) continue;
+
+                        const dist = Math.hypot(sp.x - roach.x, sp.y - roach.y);
+                        if (dist < sp.radius + roach.bodyLength * 0.5) {
+                            const cKey = sp.colorKey;
+
+                            // RESISTANCE CHECK: If resistant and NOT black chemical -> Immune!
+                            if (cKey !== 'black' && this.resistantColors[cKey]) {
+                                const now = Date.now();
+                                if (now - roach.lastImmunityNoticeTime > 1200) {
+                                    roach.lastImmunityNoticeTime = now;
+                                    this.floatingTexts.push(new FloatingText(roach.x, roach.y - 12, '🛡️ 내성!', '#38bdf8'));
+                                }
+                            } else {
+                                // Poison death!
+                                this.splats.push(new Splat(roach.x, roach.y, roach.bodyLength, sp.hex));
+                                this.roaches.splice(rIdx, 1);
+                                sounds.playSquish();
+
+                                // Poison blood particles
+                                for (let p = 0; p < 8; p++) {
+                                    this.particles.push(new Particle(roach.x, roach.y, sp.hex, 4));
+                                }
+
+                                // Increment death count for this chemical substance
+                                this.deathsByColor[cKey]++;
+
+                                // Check if resistance reached (10 deaths threshold), EXCEPT Black
+                                if (cKey !== 'black' && this.deathsByColor[cKey] >= 10 && !this.resistantColors[cKey]) {
+                                    this.resistantColors[cKey] = true;
+                                    this.floatingTexts.push(new FloatingText(roach.x, roach.y - 20, '⚠️ 군집 내성 획득!', '#f59e0b'));
+                                }
+
+                                this.updateResistanceUI();
+                                this.updateStats();
+                            }
+                            
+                            // Remove spray particle on contact
+                            this.sprayParticles.splice(i, 1);
+                            break;
+                        }
+                    }
+                }
+
+                // 4. Update & Draw Cockroaches
                 for (let i = this.roaches.length - 1; i >= 0; i--) {
                     const roach = this.roaches[i];
                     roach.update(this.snacks, this.isLightOn, this.speedMultiplier, this.sizeMultiplier);
                     roach.draw(this.ctx);
                 }
 
-                // 4. Update & Draw Crumb Particles
+                // 5. Update & Draw Crumb Particles
                 for (let i = this.particles.length - 1; i >= 0; i--) {
                     const particle = this.particles[i];
                     particle.update();
@@ -1150,6 +1514,17 @@
 
                     if (particle.alpha <= 0) {
                         this.particles.splice(i, 1);
+                    }
+                }
+
+                // 6. Update & Draw Floating Notice Texts
+                for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+                    const ft = this.floatingTexts[i];
+                    ft.update();
+                    ft.draw(this.ctx);
+
+                    if (ft.alpha <= 0) {
+                        this.floatingTexts.splice(i, 1);
                     }
                 }
 
