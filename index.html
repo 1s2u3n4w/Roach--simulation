@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>바퀴벌레 과자 뷔페 (Roach Cookie Buffet)</title>
+    <!-- Tailwind CSS for modern responsive UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+
+        /* Floor backgrounds */
+        .floor-wood {
+            background-color: #2c1d11;
+            background-image: radial-gradient(#3d2919 15%, transparent 16%),
+                              radial-gradient(#22160d 15%, transparent 16%);
+            background-size: 60px 60px;
+            background-position: 0 0, 30px 30px;
+        }
+
+        .floor-tile {
+            background-color: #1e293b;
+            background-image: linear-gradient(to right, #0f172a 2px, transparent 2px),
+                              linear-gradient(to bottom, #0f172a 2px, transparent 2px);
+            background-size: 50px 50px;
+        }
+
+        .floor-tatami {
+            background-color: #2d3728;
+            background-image: repeating-linear-gradient(0deg, #374331, #374331 10px, #2d3728 10px, #2d3728 20px);
+        }
+
+        /* Glassmorphism UI panel */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Light Switch Overlay Effect */
+        #light-overlay {
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .light-on {
+            opacity: 0;
+        }
+
+        .light-off {
+            opacity: 0.65;
+            background: #000;
+        }
+
+        /* Custom scrollbar for control drawers */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="floor-wood relative w-screen h-screen overflow-hidden select-none" id="game-body">
+
+    <!-- Ambient Light Overlay (for turning lights ON / OFF) -->
+    <div id="light-overlay" class="absolute inset-0 z-10 light-off"></div>
+
+    <!-- Main Game Canvas -->
+    <canvas id="gameCanvas" class="absolute inset-0 z-0 cursor-pointer w-full h-full"></canvas>
+
+    <!-- Top HUD Navigation & Stats Bar -->
+    <div class="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+        
+        <!-- Left Title & Counter Badges -->
+        <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center gap-4 pointer-events-auto shadow-lg">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl animate-bounce">🪳</span>
+                <div>
+                    <h1 class="text-sm font-bold text-amber-400 leading-tight">바퀴벌레 과자 뷔페</h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">화면을 클릭해 과자를 주세요!</p>
+                </div>
+            </div>
+
+            <div class="h-6 w-[1px] bg-slate-700 mx-1"></div>
+
+            <div class="flex items-center gap-3 text-xs">
+                <div class="flex items-center gap-1.5" title="현재 과자 수">
+                    <span class="text-amber-300">🍪</span>
+                    <span id="stat-snacks" class="font-mono font-bold text-white">0</span>
+                </div>
+                <div class="flex items-center gap-1.5" title="바퀴벌레 개체수">
+                    <span class="text-amber-600">🪳</span>
+                    <span id="stat-roaches" class="font-mono font-bold text-white">0</span>
+                </div>
+                <div class="flex items-center gap-1.5" title="먹은 과자 수">
+                    <span class="text-emerald-400">😋</span>
+                    <span id="stat-eaten" class="font-mono font-bold text-white">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Quick Action Controls -->
+        <div class="glass-panel p-1.5 rounded-2xl flex items-center gap-2 pointer-events-auto shadow-lg">
+            <!-- Light Switch Button -->
+            <button id="btn-light" class="flex items-center gap-1.5 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-medium transition active:scale-95" title="전등 스위치 (불을 켜면 바퀴벌레가 도망칩니다!)">
+                <i id="icon-light" class="fa-solid fa-lightbulb text-amber-400"></i>
+                <span id="label-light" class="hidden md:inline">불켜기</span>
+            </button>
+
+            <!-- Sound Toggle -->
+            <button id="btn-sound" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs transition active:scale-95" title="음향 효과 켜기/끄기">
+                <i id="icon-sound" class="fa-solid fa-volume-high"></i>
+            </button>
+
+            <!-- Spawn Roach Button -->
+            <button id="btn-add-roach" class="flex items-center gap-1 px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold shadow transition active:scale-95">
+                <i class="fa-solid fa-plus"></i>
+                <span>바퀴 +1</span>
+            </button>
+
+            <!-- Clear All Button -->
+            <button id="btn-clear" class="px-3 py-2 bg-rose-600/80 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold shadow transition active:scale-95" title="과자 및 사체 청소">
+                <i class="fa-solid fa-broom mr-1"></i>
+                <span>청소</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Floating Snack Selector & Settings Bar -->
+    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-4 pointer-events-none">
+        <div class="glass-panel p-2.5 rounded-3xl flex items-center justify-between gap-2 pointer-events-auto shadow-2xl">
+            
+            <!-- Snack Selector Buttons -->
+            <div class="flex items-center justify-around w-full gap-1" id="snack-selector">
+                <button data-type="cookie" class="snack-btn active p-2.5 rounded-2xl flex flex-col items-center gap-1 transition bg-amber-500/30 text-amber-300 ring-2 ring-amber-400 scale-105">
+                    <span class="text-2xl">🍪</span>
+                    <span class="text-[10px] font-bold">쿠키</span>
+                </button>
+                <button data-type="pizza" class="snack-btn p-2.5 rounded-2xl flex flex-col items-center gap-1 transition text-slate-400 hover:bg-slate-800/60">
+                    <span class="text-2xl">🍕</span>
+                    <span class="text-[10px] font-bold">피자</span>
+                </button>
+                <button data-type="donut" class="snack-btn p-2.5 rounded-2xl flex flex-col items-center gap-1 transition text-slate-400 hover:bg-slate-800/60">
+                    <span class="text-2xl">🍩</span>
+                    <span class="text-[10px] font-bold">도넛</span>
+                </button>
+                <!-- Custom Image Upload Snack Button -->
+                <button id="btn-custom-snack" data-type="custom" class="snack-btn p-2.5 rounded-2xl flex flex-col items-center gap-1 transition text-slate-400 hover:bg-slate-800/60" title="클릭하여 내 이미지 업로드">
+                    <span id="custom-snack-icon" class="text-2xl flex items-center justify-center h-8 w-8">🖼️</span>
+                    <span class="text-[10px] font-bold">내 사진</span>
+                </button>
+                <input type="file" id="input-snack-image" accept="image/*" class="hidden">
+            </div>
+
+            <div class="h-8 w-[1px] bg-slate-700 my-auto"></div>
+
+            <!-- Settings Toggle Modal Button -->
+            <button id="btn-toggle-settings" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl text-xs transition active:scale-95 shrink-0" title="상세 설정">
+                <i class="fa-solid fa-sliders text-base"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Detailed Settings Modal Drawer -->
+    <div id="settings-modal" class="hidden absolute inset-0 z-30 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl border border-slate-700 animate-in fade-in zoom-in duration-150">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-700">
+                <h3 class="font-bold text-amber-400 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> 시뮬레이션 설정
+                </h3>
+                <button id="btn-close-settings" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Roach Speed Control -->
+            <div class="space-y-1">
+                <div class="flex justify-between text-xs text-slate-300">
+                    <span>바퀴벌레 이동 속도</span>
+                    <span id="val-speed" class="font-bold text-amber-400">보통</span>
+                </div>
+                <input id="slider-speed" type="range" min="1" max="5" value="3" class="w-full accent-amber-500 cursor-pointer">
+            </div>
+
+            <!-- Roach Size Control -->
+            <div class="space-y-1">
+                <div class="flex justify-between text-xs text-slate-300">
+                    <span>바퀴벌레 크기</span>
+                    <span id="val-size" class="font-bold text-amber-400">보통</span>
+                </div>
+                <input id="slider-size" type="range" min="1" max="4" value="2" class="w-full accent-amber-500 cursor-pointer">
+            </div>
+
+            <!-- Floor Style Selector -->
+            <div class="space-y-1.5">
+                <label class="text-xs text-slate-300">바닥 재질 선택</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button data-floor="wood" class="floor-opt border-2 border-amber-400 text-xs py-1.5 rounded-xl bg-amber-950/40 text-amber-200">원목 바닥</button>
+                    <button data-floor="tile" class="floor-opt border border-slate-700 text-xs py-1.5 rounded-xl bg-slate-800 text-slate-300">타일 바닥</button>
+                    <button data-floor="tatami" class="floor-opt border border-slate-700 text-xs py-1.5 rounded-xl bg-green-950/40 text-green-200">다타미</button>
+                </div>
+            </div>
+
+            <!-- Click Action Mode -->
+            <div class="space-y-1.5">
+                <label class="text-xs text-slate-300">클릭 상호작용 모드</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="mode-feed" class="mode-btn border-2 border-amber-400 text-xs py-2 rounded-xl bg-amber-500/20 text-amber-300 font-bold">🍪 과자 놓기</button>
+                    <button id="mode-squish" class="mode-btn border border-slate-700 text-xs py-2 rounded-xl bg-slate-800 text-slate-400 font-bold">💥 잡기/처치</button>
+                </div>
+            </div>
+
+            <!-- Reset Action -->
+            <div class="pt-2">
+                <button id="btn-reset-all" class="w-full py-2 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-300 rounded-xl text-xs font-semibold transition">
+                    전체 초기화 (리셋)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* Web Audio API Sound Generator (Safe & Error-Free) */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                try {
+                    if (!this.ctx) {
+                        const AudioContext = window.AudioContext || window.webkitAudioContext;
+                        if (AudioContext) {
+                            this.ctx = new AudioContext();
+                        }
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume().catch(() => {});
+                    }
+                } catch (e) {
+                    console.warn("AudioContext init warning:", e);
+                }
+            }
+
+            playPop() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.08);
+
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.08);
+                } catch (e) {}
+            }
+
+            playCrunch() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const bufferSize = Math.floor(this.ctx.sampleRate * 0.04);
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+
+                    const noise = this.ctx.createBufferSource();
+                    noise.buffer = buffer;
+
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.value = 1200 + Math.random() * 800;
+
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    noise.start();
+                } catch (e) {}
+            }
+
+            playSquish() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(250, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.15);
+
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.15);
+                } catch (e) {}
+            }
+
+            playClick() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.03);
+
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.03);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.03);
+                } catch (e) {}
+            }
+        }
+
+        const sounds = new SoundEngine();
+
+        // Unlock audio context on initial user gesture
+        window.addEventListener('pointerdown', () => {
+            sounds.init();
+        }, { once: true });
+    </script>
+
+    <script>
+        /* Snack Data Types and Rendering Properties */
+        const SNACK_TYPES = {
+            cookie: { emoji: '🍪', color: '#d97706', size: 24, crumbs: '#b45309' },
+            pizza: { emoji: '🍕', color: '#e11d48', size: 28, crumbs: '#f59e0b' },
+            donut: { emoji: '🍩', color: '#db2777', size: 26, crumbs: '#f472b6' },
+            custom: { emoji: '🖼️', color: '#3b82f6', size: 28, crumbs: '#60a5fa' }
+        };
+
+        class Snack {
+            constructor(x, y, type = 'cookie') {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.info = SNACK_TYPES[type] || SNACK_TYPES.cookie;
+                if (type === 'custom' && window.customSnackImage) {
+                    this.img = window.customSnackImage;
+                }
+                this.maxHp = 100;
+                this.hp = 100;
+                this.radius = this.info.size;
+                this.initialRadius = this.info.size;
+                this.scale = 0; // Entrance animation scale
+                this.targetScale = 1;
+                this.bites = []; // Bite marks cutout positions
+            }
+
+            update() {
+                if (this.scale < this.targetScale) {
+                    this.scale += (this.targetScale - this.scale) * 0.2;
+                }
+                this.radius = Math.max(0, this.initialRadius * (Math.max(0, this.hp) / this.maxHp));
+            }
+
+            addBiteMark(roachX, roachY) {
+                const angle = Math.atan2(roachY - this.y, roachX - this.x);
+                const dist = Math.min(this.radius * 0.8, Math.hypot(roachX - this.x, roachY - this.y));
+                this.bites.push({
+                    rx: Math.cos(angle) * dist,
+                    ry: Math.sin(angle) * dist,
+                    r: Math.max(1, 4 + Math.random() * 4)
+                });
+            }
+
+            draw(ctx) {
+                if (this.radius <= 0) return;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.scale(this.scale, this.scale);
+
+                // Draw Drop Shadow
+                const rx = Math.max(0.1, this.radius * 0.9);
+                const ry = Math.max(0.1, this.radius * 0.4);
+                ctx.beginPath();
+                ctx.ellipse(2, this.radius * 0.6, rx, ry, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fill();
+
+                // Draw Custom Uploaded Image or Emoji Snack
+                if (this.type === 'custom' && this.img && this.img.complete) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(0, 0, Math.max(0.1, this.radius), 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.drawImage(this.img, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
+                    ctx.restore();
+                } else {
+                    ctx.font = `${Math.max(12, this.radius * 1.5)}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(this.info.emoji, 0, 0);
+                }
+
+                // Draw bite mark cutouts over snack
+                ctx.fillStyle = 'rgba(30, 20, 10, 0.85)';
+                for (let bite of this.bites) {
+                    ctx.beginPath();
+                    ctx.arc(bite.rx, bite.ry, Math.max(0.1, bite.r), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        /* Crumb & Goo Particle Effects */
+        class Particle {
+            constructor(x, y, color, speed = 2) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * speed;
+                this.vy = (Math.random() - 0.5) * speed;
+                this.radius = 1.5 + Math.random() * 2.5;
+                this.alpha = 1;
+                this.decay = 0.02 + Math.random() * 0.03;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= this.decay;
+            }
+
+            draw(ctx) {
+                if (this.radius <= 0 || this.alpha <= 0) return;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, Math.max(0.1, this.radius), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        /* Squished Roach Splat Effect */
+        class Splat {
+            constructor(x, y, size) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.max(1, size);
+                this.alpha = 0.8;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = '#4d7c0f'; // Dark green bug goo
+                ctx.beginPath();
+                const splatRx = Math.max(0.1, this.size * 1.2);
+                const splatRy = Math.max(0.1, this.size * 0.7);
+                ctx.ellipse(this.x, this.y, splatRx, splatRy, Math.PI / 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Splatter droplets
+                ctx.fillStyle = '#65a30d';
+                ctx.beginPath();
+                ctx.arc(this.x - this.size * 0.8, this.y - this.size * 0.5, Math.max(0.1, this.size * 0.3), 0, Math.PI * 2);
+                ctx.arc(this.x + this.size * 0.9, this.y + this.size * 0.4, Math.max(0.1, this.size * 0.25), 0, Math.PI * 2);
+                ctx.arc(this.x + this.size * 0.2, this.y - this.size * 0.9, Math.max(0.1, this.size * 0.2), 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+    </script>
+
+    <script>
+        /* Cockroach AI and Procedural Leg Animation */
+        class Cockroach {
+            constructor(x, y, baseSpeedMultiplier = 1, sizeMultiplier = 1) {
+                this.x = x;
+                this.y = y;
+                this.angle = Math.random() * Math.PI * 2;
+                this.targetAngle = this.angle;
+                
+                // Size properties
+                this.sizeScale = sizeMultiplier;
+                this.bodyLength = 18 * this.sizeScale;
+                this.bodyWidth = 9 * this.sizeScale;
+
+                // Speed & Physics
+                this.baseSpeed = (2.2 + Math.random() * 1.2) * baseSpeedMultiplier;
+                this.speed = this.baseSpeed;
+                this.turnSpeed = 0.12 + Math.random() * 0.08;
+
+                // Animation Phase
+                this.legPhase = Math.random() * 10;
+                this.antennaWiggle = 0;
+
+                // AI States: 'WANDER', 'SEEK_FOOD', 'EATING', 'FLEE'
+                this.state = 'WANDER';
+                this.targetSnack = null;
+                this.eatTimer = 0;
+                this.isHiding = false;
+
+                // Random target position when wandering
+                this.wanderTarget = { x: this.x, y: this.y };
+                this.pickNewWanderTarget();
+            }
+
+            pickNewWanderTarget() {
+                const margin = 50;
+                this.wanderTarget = {
+                    x: margin + Math.random() * (window.innerWidth - margin * 2),
+                    y: margin + Math.random() * (window.innerHeight - margin * 2)
+                };
+            }
+
+            update(snacks, isLightOn, globalSpeedMult, globalSizeMult) {
+                // Apply global settings
+                const effectiveSpeed = this.baseSpeed * globalSpeedMult;
+                const effectiveScale = this.sizeScale * globalSizeMult;
+                this.bodyLength = 18 * effectiveScale;
+                this.bodyWidth = 9 * effectiveScale;
+
+                // Light ON -> Emergency FLEE to screen edges
+                if (isLightOn) {
+                    this.state = 'FLEE';
+                    this.targetSnack = null;
+                } else if (this.state === 'FLEE' && !isLightOn) {
+                    this.state = 'WANDER';
+                    this.isHiding = false;
+                }
+
+                // AI Decision Logic
+                if (this.state === 'FLEE') {
+                    // Move towards closest boundary edge
+                    let targetX = this.x < window.innerWidth / 2 ? -100 : window.innerWidth + 100;
+                    let targetY = this.y < window.innerHeight / 2 ? -100 : window.innerHeight + 100;
+                    this.targetAngle = Math.atan2(targetY - this.y, targetX - this.x);
+                    this.speed = effectiveSpeed * 1.8; // Panicked sprint speed
+
+                    // Flag as hiding when off screen
+                    if (this.x < -40 || this.x > window.innerWidth + 40 || this.y < -40 || this.y > window.innerHeight + 40) {
+                        this.isHiding = true;
+                    }
+                } 
+                else if (snacks.length > 0) {
+                    // Find closest available snack
+                    let closest = null;
+                    let minDist = Infinity;
+
+                    for (let snack of snacks) {
+                        const dist = Math.hypot(snack.x - this.x, snack.y - this.y);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closest = snack;
+                        }
+                    }
+
+                    if (closest) {
+                        this.targetSnack = closest;
+                        const distToSnack = Math.hypot(closest.x - this.x, closest.y - this.y);
+
+                        // If close enough to snack -> Start EATING
+                        if (distToSnack < closest.radius + this.bodyLength * 0.5) {
+                            this.state = 'EATING';
+                            this.speed = 0;
+                            this.eatTimer++;
+
+                            // Eat & nibble logic
+                            if (this.eatTimer % 8 === 0) {
+                                closest.hp -= 2.5;
+                                closest.addBiteMark(this.x, this.y);
+                                sounds.playCrunch();
+
+                                // Return crumbs particles
+                                if (window.gameInstance) {
+                                    window.gameInstance.spawnCrumbs(this.x, this.y, closest.info.crumbs);
+                                }
+                            }
+
+                            if (closest.hp <= 0) {
+                                this.state = 'WANDER';
+                                this.targetSnack = null;
+                            }
+                        } else {
+                            this.state = 'SEEK_FOOD';
+                            this.targetAngle = Math.atan2(closest.y - this.y, closest.x - this.x);
+                            this.speed = effectiveSpeed;
+                        }
+                    }
+                } 
+                else {
+                    // Default WANDER behavior
+                    this.state = 'WANDER';
+                    this.speed = effectiveSpeed * 0.7;
+
+                    const distToWander = Math.hypot(this.wanderTarget.x - this.x, this.wanderTarget.y - this.y);
+                    if (distToWander < 30 || Math.random() < 0.005) {
+                        this.pickNewWanderTarget();
+                    }
+                    this.targetAngle = Math.atan2(this.wanderTarget.y - this.y, this.wanderTarget.x - this.x);
+                }
+
+                // Smooth Rotation Math (Shortest rotation delta)
+                let diff = this.targetAngle - this.angle;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                this.angle += diff * this.turnSpeed;
+
+                // Move forward if moving
+                if (this.speed > 0) {
+                    // Slight jitter/wiggle when crawling
+                    const jitter = (Math.random() - 0.5) * 0.1;
+                    this.x += Math.cos(this.angle + jitter) * this.speed;
+                    this.y += Math.sin(this.angle + jitter) * this.speed;
+
+                    // Leg walking animation phase update
+                    this.legPhase += this.speed * 0.35;
+                }
+
+                // Antennae continuous wiggle
+                this.antennaWiggle += 0.15;
+
+                // Screen Boundary Clamping (wrap or bounce if wandering)
+                if (this.state !== 'FLEE') {
+                    const margin = 10;
+                    if (this.x < margin) this.x = margin;
+                    if (this.x > window.innerWidth - margin) this.x = window.innerWidth - margin;
+                    if (this.y < margin) this.y = margin;
+                    if (this.y > window.innerHeight - margin) this.y = window.innerHeight - margin;
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                // Draw Roach Shadow
+                ctx.beginPath();
+                const shadowRx = Math.max(0.1, this.bodyLength * 0.55);
+                const shadowRy = Math.max(0.1, this.bodyWidth * 0.6);
+                ctx.ellipse(0, 3, shadowRx, shadowRy, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.fill();
+
+                // Draw Legs (6 Legs, 3 per side, procedural sine wave motion)
+                ctx.strokeStyle = '#2d1810';
+                ctx.lineWidth = Math.max(1.2, 1.5 * (this.bodyLength / 18));
+                ctx.lineCap = 'round';
+
+                const legPairs = [
+                    { attachX: this.bodyLength * 0.2, length: this.bodyWidth * 0.085, phaseOffset: 0 },
+                    { attachX: 0, length: this.bodyWidth * 0.1, phaseOffset: Math.PI / 2 },
+                    { attachX: -this.bodyLength * 0.25, length: this.bodyWidth * 0.115, phaseOffset: Math.PI }
+                ];
+
+                for (let leg of legPairs) {
+                    // Left Leg
+                    let leftAngle = -Math.PI / 2 + Math.sin(this.legPhase + leg.phaseOffset) * 0.35;
+                    ctx.beginPath();
+                    ctx.moveTo(leg.attachX, -this.bodyWidth * 0.4);
+                    let lx1 = leg.attachX + Math.cos(leftAngle) * (leg.length * 0.6);
+                    let ly1 = -this.bodyWidth * 0.4 + Math.sin(leftAngle) * (leg.length * 0.6);
+                    let lx2 = lx1 + Math.cos(leftAngle - 0.4) * (leg.length * 0.6);
+                    let ly2 = ly1 + Math.sin(leftAngle - 0.4) * (leg.length * 0.6);
+                    ctx.lineTo(lx1, ly1);
+                    ctx.lineTo(lx2, ly2);
+                    ctx.stroke();
+
+                    // Right Leg
+                    let rightAngle = Math.PI / 2 + Math.sin(this.legPhase + leg.phaseOffset + Math.PI) * 0.35;
+                    ctx.beginPath();
+                    ctx.moveTo(leg.attachX, this.bodyWidth * 0.4);
+                    let rx1 = leg.attachX + Math.cos(rightAngle) * (leg.length * 0.6);
+                    let ry1 = this.bodyWidth * 0.4 + Math.sin(rightAngle) * (leg.length * 0.6);
+                    let rx2 = rx1 + Math.cos(rightAngle + 0.4) * (leg.length * 0.6);
+                    let ry2 = ry1 + Math.sin(rightAngle + 0.4) * (leg.length * 0.6);
+                    ctx.lineTo(rx1, ry1);
+                    ctx.lineTo(rx2, ry2);
+                    ctx.stroke();
+                }
+
+                // Draw Antennae (2 long wiggling whiskers at front)
+                ctx.strokeStyle = '#3e1f13';
+                ctx.lineWidth = 1;
+
+                // Left Antenna
+                ctx.beginPath();
+                ctx.moveTo(this.bodyLength * 0.45, -this.bodyWidth * 0.2);
+                ctx.quadraticCurveTo(
+                    this.bodyLength * 0.9,
+                    -this.bodyWidth * 1.2 + Math.sin(this.antennaWiggle) * 4,
+                    this.bodyLength * 1.5,
+                    -this.bodyWidth * 0.8 + Math.cos(this.antennaWiggle) * 6
+                );
+                ctx.stroke();
+
+                // Right Antenna
+                ctx.beginPath();
+                ctx.moveTo(this.bodyLength * 0.45, this.bodyWidth * 0.2);
+                ctx.quadraticCurveTo(
+                    this.bodyLength * 0.9,
+                    this.bodyWidth * 1.2 + Math.cos(this.antennaWiggle) * 4,
+                    this.bodyLength * 1.5,
+                    this.bodyWidth * 0.8 + Math.sin(this.antennaWiggle) * 6
+                );
+                ctx.stroke();
+
+                // Draw Main Body (Abdomen & Thorax gradient)
+                const grad = ctx.createLinearGradient(-this.bodyLength * 0.5, 0, this.bodyLength * 0.5, 0);
+                grad.addColorStop(0, '#1c0d06');
+                grad.addColorStop(0.4, '#4a2511');
+                grad.addColorStop(0.8, '#7c3f1d');
+                grad.addColorStop(1, '#3b1c0c');
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.bodyLength * 0.5, this.bodyWidth * 0.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Abdomen Segment Stripes
+                ctx.strokeStyle = '#231007';
+                ctx.lineWidth = 1;
+                for (let i = -0.3; i <= 0.2; i += 0.15) {
+                    ctx.beginPath();
+                    ctx.arc(this.bodyLength * i, 0, this.bodyWidth * 0.48, -Math.PI / 2, Math.PI / 2);
+                    ctx.stroke();
+                }
+
+                // Shiny Gloss Highlight
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+                ctx.beginPath();
+                ctx.ellipse(this.bodyLength * 0.1, -this.bodyWidth * 0.15, this.bodyLength * 0.25, this.bodyWidth * 0.12, -0.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Head (Pronotum)
+                ctx.fillStyle = '#2d1408';
+                ctx.beginPath();
+                ctx.arc(this.bodyLength * 0.4, 0, this.bodyWidth * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            // Check if point (click) hits cockroach
+            isPointInside(px, py) {
+                const dist = Math.hypot(px - this.x, py - this.y);
+                return dist < Math.max(this.bodyLength, 20);
+            }
+        }
+    </script>
+
+    <script>
+        class RoachBuffetGame {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+
+                // Game Entities
+                this.roaches = [];
+                this.snacks = [];
+                this.particles = [];
+                this.splats = [];
+
+                // Settings & States
+                this.selectedSnackType = 'cookie';
+                this.clickMode = 'feed'; // 'feed' or 'squish'
+                this.isLightOn = false;
+                this.totalEatenCount = 0;
+
+                // Settings Sliders Multipliers
+                this.speedMultiplier = 1;
+                this.sizeMultiplier = 1;
+
+                // Initialize Canvas Size
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+
+                // Expose global instance for callbacks
+                window.gameInstance = this;
+
+                // Bind UI Elements & Events
+                this.bindUI();
+
+                // Spawn initial cockroach colony
+                this.spawnRoaches(10);
+
+                // Start Main Animation Loop
+                requestAnimationFrame(() => this.loop());
+            }
+
+            resizeCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+
+            spawnRoaches(count) {
+                for (let i = 0; i < count; i++) {
+                    // Spawn roaches near edges
+                    let x, y;
+                    if (Math.random() < 0.5) {
+                        x = Math.random() < 0.5 ? -20 : window.innerWidth + 20;
+                        y = Math.random() * window.innerHeight;
+                    } else {
+                        x = Math.random() * window.innerWidth;
+                        y = Math.random() < 0.5 ? -20 : window.innerHeight + 20;
+                    }
+                    this.roaches.push(new Cockroach(x, y, this.speedMultiplier, this.sizeMultiplier));
+                }
+                this.updateStats();
+            }
+
+            spawnCrumbs(x, y, color) {
+                for (let i = 0; i < 3; i++) {
+                    this.particles.push(new Particle(x, y, color, 3));
+                }
+            }
+
+            handleInteraction(e) {
+                sounds.init();
+
+                const rect = this.canvas.getBoundingClientRect();
+                const clientX = e.clientX - rect.left;
+                const clientY = e.clientY - rect.top;
+
+                if (this.clickMode === 'squish') {
+                    // Check if clicked on a non-hiding roach
+                    let squishedAny = false;
+                    for (let i = this.roaches.length - 1; i >= 0; i--) {
+                        if (!this.roaches[i].isHiding && this.roaches[i].isPointInside(clientX, clientY)) {
+                            const r = this.roaches[i];
+                            this.splats.push(new Splat(r.x, r.y, r.bodyLength));
+                            this.roaches.splice(i, 1);
+                            sounds.playSquish();
+                            squishedAny = true;
+
+                            // Spawn green blood particles
+                            for (let p = 0; p < 12; p++) {
+                                this.particles.push(new Particle(r.x, r.y, '#84cc16', 5));
+                            }
+                            break;
+                        }
+                    }
+
+                    if (!squishedAny) {
+                        sounds.playClick();
+                    }
+                } else {
+                    // Drop Snack Mode
+                    const newSnack = new Snack(clientX, clientY, this.selectedSnackType);
+                    this.snacks.push(newSnack);
+                    sounds.playPop();
+
+                    // Spawn drop particles
+                    for (let i = 0; i < 8; i++) {
+                        this.particles.push(new Particle(clientX, clientY, newSnack.info.crumbs, 4));
+                    }
+                }
+
+                this.updateStats();
+            }
+
+            bindUI() {
+                // Canvas Pointer Listener (handles touch and mouse smoothly)
+                this.canvas.addEventListener('pointerdown', (e) => {
+                    const modal = document.getElementById('settings-modal');
+                    if (!modal.classList.contains('hidden')) return;
+
+                    this.handleInteraction(e);
+                });
+
+                // Snack Selector Buttons
+                const snackBtns = document.querySelectorAll('.snack-btn');
+                const fileInput = document.getElementById('input-snack-image');
+                const customBtn = document.getElementById('btn-custom-snack');
+                const customIcon = document.getElementById('custom-snack-icon');
+
+                snackBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const target = e.currentTarget;
+
+                        // Handle Custom Image Snack selection / upload
+                        if (target.dataset.type === 'custom') {
+                            if (!window.customSnackImage) {
+                                fileInput.click();
+                                return;
+                            }
+                        }
+
+                        snackBtns.forEach(b => {
+                            b.classList.remove('ring-2', 'ring-amber-400', 'bg-amber-500/30', 'text-amber-300', 'scale-105');
+                            b.classList.add('text-slate-400');
+                        });
+                        target.classList.add('ring-2', 'ring-amber-400', 'bg-amber-500/30', 'text-amber-300', 'scale-105');
+                        target.classList.remove('text-slate-400');
+
+                        this.selectedSnackType = target.dataset.type;
+                        sounds.playClick();
+                    });
+                });
+
+                // Click or double click custom button to change uploaded image
+                customBtn.addEventListener('dblclick', () => {
+                    fileInput.click();
+                });
+
+                // Handle File Input Selection
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                window.customSnackImage = img;
+                                customIcon.innerHTML = `<img src="${event.target.result}" class="w-7 h-7 object-cover rounded-full border border-amber-400 shadow">`;
+                                
+                                // Activate custom snack button
+                                customBtn.click();
+                            };
+                            img.src = event.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+
+                // Light Switch Button
+                const btnLight = document.getElementById('btn-light');
+                const lightOverlay = document.getElementById('light-overlay');
+                const labelLight = document.getElementById('label-light');
+                const iconLight = document.getElementById('icon-light');
+
+                btnLight.addEventListener('click', () => {
+                    this.isLightOn = !this.isLightOn;
+                    sounds.playClick();
+
+                    if (this.isLightOn) {
+                        lightOverlay.classList.remove('light-off');
+                        lightOverlay.classList.add('light-on');
+                        labelLight.textContent = '불끄기';
+                        iconLight.className = 'fa-solid fa-lightbulb text-amber-300 animate-pulse';
+                    } else {
+                        lightOverlay.classList.remove('light-on');
+                        lightOverlay.classList.add('light-off');
+                        labelLight.textContent = '불켜기';
+                        iconLight.className = 'fa-solid fa-lightbulb text-amber-400';
+                    }
+                });
+
+                // Sound Toggle Button
+                const btnSound = document.getElementById('btn-sound');
+                const iconSound = document.getElementById('icon-sound');
+                btnSound.addEventListener('click', () => {
+                    sounds.enabled = !sounds.enabled;
+                    if (sounds.enabled) {
+                        iconSound.className = 'fa-solid fa-volume-high text-slate-200';
+                        sounds.playClick();
+                    } else {
+                        iconSound.className = 'fa-solid fa-volume-xmark text-rose-400';
+                    }
+                });
+
+                // Add Roach Button (+1)
+                document.getElementById('btn-add-roach').addEventListener('click', () => {
+                    this.spawnRoaches(1);
+                    sounds.playClick();
+                });
+
+                // Clear Broom Button
+                document.getElementById('btn-clear').addEventListener('click', () => {
+                    this.snacks = [];
+                    this.splats = [];
+                    this.particles = [];
+                    sounds.playClick();
+                    this.updateStats();
+                });
+
+                // Modal Toggle Controls
+                const modal = document.getElementById('settings-modal');
+                document.getElementById('btn-toggle-settings').addEventListener('click', () => {
+                    modal.classList.remove('hidden');
+                    sounds.playClick();
+                });
+
+                document.getElementById('btn-close-settings').addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                    sounds.playClick();
+                });
+
+                // Roach Speed Slider
+                const sliderSpeed = document.getElementById('slider-speed');
+                const valSpeed = document.getElementById('val-speed');
+                const speedLabels = { '1': '매우 천천히', '2': '천천히', '3': '보통', '4': '빠름', '5': '빛의 속도' };
+                sliderSpeed.addEventListener('input', (e) => {
+                    const val = e.target.value;
+                    valSpeed.textContent = speedLabels[val];
+                    this.speedMultiplier = 0.4 + (val - 1) * 0.35;
+                });
+
+                // Roach Size Slider
+                const sliderSize = document.getElementById('slider-size');
+                const valSize = document.getElementById('val-size');
+                const sizeLabels = { '1': '소형', '2': '보통', '3': '대형', '4': '왕바퀴 (거대)' };
+                sliderSize.addEventListener('input', (e) => {
+                    const val = e.target.value;
+                    valSize.textContent = sizeLabels[val];
+                    this.sizeMultiplier = 0.6 + (val - 1) * 0.4;
+                });
+
+                // Floor Material Options
+                const floorOpts = document.querySelectorAll('.floor-opt');
+                const gameBody = document.getElementById('game-body');
+                floorOpts.forEach(opt => {
+                    opt.addEventListener('click', (e) => {
+                        floorOpts.forEach(o => {
+                            o.classList.remove('border-2', 'border-amber-400');
+                            o.classList.add('border-slate-700');
+                        });
+                        e.target.classList.add('border-2', 'border-amber-400');
+                        e.target.classList.remove('border-slate-700');
+
+                        gameBody.className = `floor-${e.target.dataset.floor} relative w-screen h-screen overflow-hidden select-none`;
+                        sounds.playClick();
+                    });
+                });
+
+                // Interaction Mode Buttons (Feed vs Squish)
+                const modeFeed = document.getElementById('mode-feed');
+                const modeSquish = document.getElementById('mode-squish');
+
+                modeFeed.addEventListener('click', () => {
+                    this.clickMode = 'feed';
+                    modeFeed.className = 'mode-btn border-2 border-amber-400 text-xs py-2 rounded-xl bg-amber-500/20 text-amber-300 font-bold';
+                    modeSquish.className = 'mode-btn border border-slate-700 text-xs py-2 rounded-xl bg-slate-800 text-slate-400 font-bold';
+                    sounds.playClick();
+                });
+
+                modeSquish.addEventListener('click', () => {
+                    this.clickMode = 'squish';
+                    modeSquish.className = 'mode-btn border-2 border-rose-500 text-xs py-2 rounded-xl bg-rose-500/20 text-rose-300 font-bold';
+                    modeFeed.className = 'mode-btn border border-slate-700 text-xs py-2 rounded-xl bg-slate-800 text-slate-400 font-bold';
+                    sounds.playClick();
+                });
+
+                // Reset All Button
+                document.getElementById('btn-reset-all').addEventListener('click', () => {
+                    this.roaches = [];
+                    this.snacks = [];
+                    this.splats = [];
+                    this.particles = [];
+                    this.totalEatenCount = 0;
+                    this.spawnRoaches(10);
+                    modal.classList.add('hidden');
+                    sounds.playClick();
+                });
+            }
+
+            updateStats() {
+                document.getElementById('stat-snacks').textContent = this.snacks.length;
+                document.getElementById('stat-roaches').textContent = this.roaches.length;
+                document.getElementById('stat-eaten').textContent = this.totalEatenCount;
+            }
+
+            loop() {
+                // Clear Canvas Frame
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // 1. Draw Splats (Dead Roaches)
+                for (let splat of this.splats) {
+                    splat.draw(this.ctx);
+                }
+
+                // 2. Update & Draw Snacks
+                for (let i = this.snacks.length - 1; i >= 0; i--) {
+                    const snack = this.snacks[i];
+                    snack.update();
+
+                    // Remove snack when fully eaten before attempting to render
+                    if (snack.hp <= 0 || snack.radius <= 0) {
+                        this.snacks.splice(i, 1);
+                        this.totalEatenCount++;
+                        this.updateStats();
+                        continue;
+                    }
+
+                    snack.draw(this.ctx);
+                }
+
+                // 3. Update & Draw Cockroaches
+                for (let i = this.roaches.length - 1; i >= 0; i--) {
+                    const roach = this.roaches[i];
+                    roach.update(this.snacks, this.isLightOn, this.speedMultiplier, this.sizeMultiplier);
+                    roach.draw(this.ctx);
+                }
+
+                // 4. Update & Draw Crumb Particles
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const particle = this.particles[i];
+                    particle.update();
+                    particle.draw(this.ctx);
+
+                    if (particle.alpha <= 0) {
+                        this.particles.splice(i, 1);
+                    }
+                }
+
+                requestAnimationFrame(() => this.loop());
+            }
+        }
+
+        // Initialize Game Application when Window Loads
+        window.onload = () => {
+            new RoachBuffetGame();
+        };
+    </script>
+</body>
+</html>
