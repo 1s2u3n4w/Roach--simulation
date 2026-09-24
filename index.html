@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <title>바퀴벌레 시뮬레이션 (Roach Simulation)</title>
-    <meta name="description" content="인터렉티브 2D 바퀴벌레 생태 시뮬레이션! 바퀴벌레 먹이, 겔 제재 감염, 살충제 내성 생태계를 체험해 보세요.">
+    <meta name="description" content="인터렉티브 2D 바퀴벌레 시뮬레이션! 과자를 놓고 살충제 내성 및 겔 제재 감염 생태계를 체험해보세요.">
     <meta name="theme-color" content="#0a0a0a">
 
     <!-- Dynamic SVG Favicon -->
@@ -37,7 +37,7 @@
             touch-action: none;
         }
 
-        /* Floor background textures */
+        /* Floor backgrounds */
         .floor-wood {
             background-color: #160e08;
             background-image: radial-gradient(#24170d 15%, transparent 16%),
@@ -71,11 +71,37 @@
             transition: opacity 0.3s ease-in-out;
         }
 
-        .light-on { opacity: 0; }
-        .light-off { opacity: 0.75; background: #000; }
+        .light-on {
+            opacity: 0;
+        }
 
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        .light-off {
+            opacity: 0.75;
+            background: #000;
+        }
+
+        /* Accordion transition styles */
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s cubic-bezier(0, 1, 0, 1), opacity 0.25s ease-in-out;
+            opacity: 0;
+        }
+
+        .accordion-content.open {
+            max-height: 250px;
+            opacity: 1;
+            transition: max-height 0.3s ease-in-out, opacity 0.25s ease-in-out;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body class="floor-wood relative w-screen h-screen overflow-hidden select-none" id="game-body">
@@ -83,55 +109,85 @@
     <!-- Ambient Light Overlay -->
     <div id="light-overlay" class="absolute inset-0 z-10 light-off"></div>
 
-    <!-- Main Canvas -->
+    <!-- Main Game Canvas -->
     <canvas id="gameCanvas" class="absolute inset-0 z-0 cursor-pointer w-full h-full"></canvas>
 
-    <!-- Top Navigation & Stats Bar -->
-    <div class="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+    <!-- Top HUD Navigation & Stats Bar -->
+    <div class="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-start justify-between gap-3 pointer-events-none">
         
-        <!-- Stats Widget -->
+        <!-- Left Stats Widget -->
         <div class="glass-panel px-3.5 py-2 rounded-2xl flex items-center gap-3 pointer-events-auto text-xs font-semibold text-slate-300">
-            <div class="flex items-center gap-1.5" title="먹이/겔 수">
+            <div class="flex items-center gap-1.5" title="과자 수">
                 <span class="text-amber-400">🍪</span>
                 <span id="stat-snacks" class="text-white font-bold">0</span>
             </div>
             <div class="w-px h-3 bg-slate-800"></div>
-            <div class="flex items-center gap-1.5" title="바퀴벌레 개체수">
+            <div class="flex items-center gap-1.5" title="바퀴벌레 개체수 (최대 500)">
                 <span class="text-amber-400">🪳</span>
-                <span id="stat-roaches" class="text-white font-bold">0</span>
+                <span id="stat-roaches" class="text-white font-bold">0/500</span>
             </div>
             <div class="w-px h-3 bg-slate-800"></div>
-            <div class="flex items-center gap-1.5" title="먹어치운 먹이 총 수">
+            <div class="flex items-center gap-1.5" title="번식 타이머 (기본 10초, 음식 섭취 시 -0.1초, 최소 1초)">
+                <span class="text-emerald-400">⏳</span>
+                <span id="stat-timer" class="text-emerald-400 font-bold">10.0s</span>
+            </div>
+            <div class="w-px h-3 bg-slate-800"></div>
+            <div class="flex items-center gap-1.5" title="먹어치운 과자 총 수">
                 <span class="text-amber-400">✨</span>
                 <span id="stat-eaten" class="text-white font-bold">0</span>
             </div>
         </div>
 
-        <!-- Right Quick Action Controls -->
-        <div class="glass-panel p-1.5 rounded-2xl flex items-center gap-2 pointer-events-auto shadow-lg flex-wrap">
-            <button id="btn-light" class="flex items-center gap-1.5 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-semibold transition active:scale-95" title="전등 스위치">
-                <i id="icon-light" class="fa-solid fa-lightbulb text-amber-400"></i>
-                <span id="label-light">불켜기</span>
-            </button>
+        <!-- Right Quick Action Controls & Accordion Menu -->
+        <div class="flex flex-col items-end gap-2 pointer-events-auto">
+            <div class="glass-panel p-1.5 rounded-2xl flex items-center gap-2 shadow-lg flex-wrap">
+                <button id="btn-light" class="flex items-center gap-1.5 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-semibold transition active:scale-95" title="전등 스위치">
+                    <i id="icon-light" class="fa-solid fa-lightbulb text-amber-400"></i>
+                    <span id="label-light">불켜기</span>
+                </button>
 
-            <button id="btn-add-roach" class="flex items-center gap-1 px-3 py-2 bg-amber-700 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow transition active:scale-95">
-                <i class="fa-solid fa-plus"></i>
-                <span>바퀴 +1</span>
-            </button>
+                <button id="btn-add-roach" class="flex items-center gap-1 px-3 py-2 bg-amber-700 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow transition active:scale-95">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>바퀴 +1</span>
+                </button>
 
-            <button id="btn-clear" class="px-3 py-2 bg-rose-900/80 hover:bg-rose-800 text-rose-200 rounded-xl text-xs font-semibold shadow transition active:scale-95" title="청소">
-                <i class="fa-solid fa-broom mr-1"></i>
-                <span>청소</span>
-            </button>
+                <button id="btn-clear" class="px-3 py-2 bg-rose-900/80 hover:bg-rose-800 text-rose-200 rounded-xl text-xs font-semibold shadow transition active:scale-95" title="청소">
+                    <i class="fa-solid fa-broom mr-1"></i>
+                    <span>청소</span>
+                </button>
 
-            <button id="btn-sound" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl text-xs transition active:scale-95" title="음향 효과">
-                <i id="icon-sound" class="fa-solid fa-volume-high"></i>
-            </button>
+                <button id="btn-sound" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl text-xs transition active:scale-95" title="음향 효과">
+                    <i id="icon-sound" class="fa-solid fa-volume-high"></i>
+                </button>
 
-            <button id="btn-toggle-settings" class="flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl text-xs font-medium transition active:scale-95" title="설정">
-                <i class="fa-solid fa-sliders text-amber-400"></i>
-                <span class="hidden md:inline">설정</span>
-            </button>
+                <button id="btn-toggle-settings" class="flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl text-xs font-medium transition active:scale-95" title="설정">
+                    <i class="fa-solid fa-sliders text-amber-400"></i>
+                    <span class="hidden md:inline">설정</span>
+                </button>
+
+                <!-- 참고 아코디언 토글 버튼 -->
+                <button id="btn-ref-accordion" class="flex items-center gap-1.5 px-3 py-2 bg-sky-600/30 hover:bg-sky-500/40 text-sky-300 border border-sky-500/40 rounded-xl text-xs font-bold transition active:scale-95">
+                    <i class="fa-solid fa-book-open text-sky-400"></i>
+                    <span>참고</span>
+                    <i id="icon-ref-chevron" class="fa-solid fa-chevron-down text-[10px] ml-0.5 transition-transform duration-200"></i>
+                </button>
+            </div>
+
+            <!-- 참고 아코디언 드롭다운 메뉴 -->
+            <div id="ref-accordion-menu" class="accordion-content w-48 glass-panel rounded-2xl p-1.5 shadow-2xl border border-sky-500/30 flex flex-col gap-1">
+                <a href="characteristics.html" class="flex items-center gap-2 px-3 py-2 hover:bg-sky-500/20 text-slate-200 hover:text-sky-300 rounded-xl text-xs font-medium transition">
+                    <i class="fa-solid fa-bug text-sky-400 w-4 text-center"></i>
+                    <span>바퀴벌레의 특징</span>
+                </a>
+                <a href="pesticide.html" class="flex items-center gap-2 px-3 py-2 hover:bg-sky-500/20 text-slate-200 hover:text-sky-300 rounded-xl text-xs font-medium transition">
+                    <i class="fa-solid fa-vial text-emerald-400 w-4 text-center"></i>
+                    <span>살충제의 원리</span>
+                </a>
+                <a href="prevention.html" class="flex items-center gap-2 px-3 py-2 hover:bg-sky-500/20 text-slate-200 hover:text-sky-300 rounded-xl text-xs font-medium transition">
+                    <i class="fa-solid fa-shield-halved text-amber-400 w-4 text-center"></i>
+                    <span>바퀴벌레 예방법</span>
+                </a>
+            </div>
         </div>
     </div>
 
@@ -147,7 +203,7 @@
 
         <div class="glass-panel p-3 rounded-3xl flex flex-col gap-2.5 pointer-events-auto shadow-2xl">
 
-            <!-- Tool Switcher -->
+            <!-- Tool Mode Selection Switcher -->
             <div id="tool-selector-bar" class="flex items-center justify-center bg-black/80 p-1 rounded-2xl border border-slate-800 gap-1">
                 <button id="tool-btn-snack" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 bg-amber-500 text-slate-950 shadow">
                     <span>🍪 과자 놓기</span>
@@ -189,41 +245,41 @@
                     <span class="font-bold flex items-center gap-1 text-amber-300">
                         <i class="fa-solid fa-spray-can"></i> 살충제 색상
                     </span>
-                    <span id="spray-status-text" class="text-[10px] text-slate-400">선택한 색상 살충제를 분사합니다</span>
+                    <span id="spray-status-text" class="text-[10px] text-slate-400">선택한 도구로 동작합니다</span>
                 </div>
                 
                 <div class="grid grid-cols-7 gap-1" id="spray-color-selector">
                     <button data-color="red" data-hex="#ef4444" class="spray-color-btn active p-1.5 rounded-xl flex flex-col items-center justify-between transition border-2 border-amber-400 bg-red-950/80 text-red-300">
                         <span class="w-3 h-3 rounded-full bg-red-500 shadow"></span>
                         <span class="text-[9px] font-bold mt-1">빨강</span>
-                        <span class="stat-res text-[8px] opacity-80"></span>
+                        <span class="stat-res text-[8px] opacity-80">0/10</span>
                     </button>
                     <button data-color="orange" data-hex="#f97316" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400">
                         <span class="w-3 h-3 rounded-full bg-orange-500 shadow"></span>
                         <span class="text-[9px] font-bold mt-1">주황</span>
-                        <span class="stat-res text-[8px] opacity-80"></span>
+                        <span class="stat-res text-[8px] opacity-80">0/10</span>
                     </button>
                     <button data-color="yellow" data-hex="#eab308" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400">
                         <span class="w-3 h-3 rounded-full bg-yellow-400 shadow"></span>
                         <span class="text-[9px] font-bold mt-1">노랑</span>
-                        <span class="stat-res text-[8px] opacity-80"></span>
+                        <span class="stat-res text-[8px] opacity-80">0/10</span>
                     </button>
                     <button data-color="green" data-hex="#22c55e" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400">
                         <span class="w-3 h-3 rounded-full bg-green-500 shadow"></span>
                         <span class="text-[9px] font-bold mt-1">초록</span>
-                        <span class="stat-res text-[8px] opacity-80"></span>
+                        <span class="stat-res text-[8px] opacity-80">0/10</span>
                     </button>
                     <button data-color="blue" data-hex="#3b82f6" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400">
                         <span class="w-3 h-3 rounded-full bg-blue-500 shadow"></span>
                         <span class="text-[9px] font-bold mt-1">파랑</span>
-                        <span class="stat-res text-[8px] opacity-80"></span>
+                        <span class="stat-res text-[8px] opacity-80">0/10</span>
                     </button>
                     <button data-color="purple" data-hex="#a855f7" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400">
                         <span class="w-3 h-3 rounded-full bg-purple-500 shadow"></span>
                         <span class="text-[9px] font-bold mt-1">보라</span>
-                        <span class="stat-res text-[8px] opacity-80"></span>
+                        <span class="stat-res text-[8px] opacity-80">0/10</span>
                     </button>
-                    <button data-color="black" data-hex="#18181b" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400" title="내성 무시 특수 살충제">
+                    <button data-color="black" data-hex="#18181b" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400" title="내성 불가 특수 살충제">
                         <span class="w-3 h-3 rounded-full bg-zinc-900 border border-zinc-600 shadow"></span>
                         <span class="text-[9px] font-bold mt-1 text-zinc-300">검정</span>
                         <span class="stat-res text-[8px] text-rose-400 font-bold">☠️위험</span>
@@ -279,8 +335,8 @@
         </div>
     </div>
 
-    <!-- Web Audio API Sound Generator -->
     <script>
+        /* Web Audio API Sound Generator */
         class SoundEngine {
             constructor() {
                 this.ctx = null;
@@ -291,7 +347,9 @@
                 try {
                     if (!this.ctx) {
                         const AudioContext = window.AudioContext || window.webkitAudioContext;
-                        if (AudioContext) this.ctx = new AudioContext();
+                        if (AudioContext) {
+                            this.ctx = new AudioContext();
+                        }
                     }
                     if (this.ctx && this.ctx.state === 'suspended') {
                         this.ctx.resume().catch(() => {});
@@ -432,8 +490,8 @@
         window.addEventListener('pointerdown', () => { sounds.init(); }, { once: true });
     </script>
 
-    <!-- Entities & Game Classes -->
     <script>
+        /* Snack & Gel Bait Data Types */
         const SNACK_TYPES = {
             cookie: { emoji: '🍪', color: '#d97706', size: 24, crumbs: '#b45309' },
             pizza: { emoji: '🍕', color: '#e11d48', size: 28, crumbs: '#f59e0b' },
@@ -515,6 +573,7 @@
             }
         }
 
+        /* Gel Bait Item */
         class GelBait {
             constructor(x, y) {
                 this.x = x;
@@ -576,6 +635,7 @@
             }
         }
 
+        /* Gel Particle emitted by infected roaches / explosion */
         class GelParticle {
             constructor(x, y, vx, vy, isExplosion = false) {
                 this.x = x;
@@ -607,6 +667,7 @@
             }
         }
 
+        /* Pesticide Spray Particles */
         class SprayParticle {
             constructor(x, y, colorKey, hex) {
                 this.x = x;
@@ -731,8 +792,8 @@
         }
     </script>
 
-    <!-- Roach AI & Simulation Main Engine -->
     <script>
+        /* Cockroach AI with Gel Infection & Explosion */
         class Cockroach {
             constructor(x, y, baseSpeedMultiplier = 1, sizeMultiplier = 1) {
                 this.x = x;
@@ -750,6 +811,7 @@
 
                 this.legPhase = Math.random() * 10;
                 this.antennaWiggle = 0;
+
                 this.lastImmunityNoticeTime = 0;
 
                 // Infection Properties
@@ -789,12 +851,13 @@
                 this.bodyLength = 18 * effectiveScale;
                 this.bodyWidth = 9 * effectiveScale;
 
-                // Infection Timer & Explosion Check
+                // Infection Progression & Explosion Check
                 if (this.isInfected) {
                     const elapsed = (Date.now() - this.infectionStartTime) / 1000;
                     if (elapsed >= 10) {
                         this.shouldExplode = true;
                     } else if (this.speed > 0 && Math.random() < 0.35) {
+                        // Scatter gel particles while moving
                         if (window.gameInstance) {
                             const angle = this.angle + Math.PI + (Math.random() - 0.5);
                             const spd = 0.8 + Math.random() * 1.2;
@@ -851,6 +914,12 @@
                                 closest.addBiteMark(this.x, this.y);
                                 sounds.playCrunch();
 
+                                // Reduced breeding timer by 0.1s for non-gel food!
+                                if (!closest.isGelBait && window.gameInstance) {
+                                    window.gameInstance.reduceBreedTimer(0.1);
+                                }
+
+                                // Infect roach if eating gel bait!
                                 if (closest.isGelBait) {
                                     this.infect();
                                 }
@@ -891,6 +960,7 @@
                     const jitter = (Math.random() - 0.5) * 0.1;
                     this.x += Math.cos(this.angle + jitter) * this.speed;
                     this.y += Math.sin(this.angle + jitter) * this.speed;
+
                     this.legPhase += this.speed * 0.35;
                 }
 
@@ -910,7 +980,7 @@
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
 
-                // Infection Aura Effect
+                // Draw Infected Green Aura Effect
                 if (this.isInfected) {
                     const pulse = Math.sin(Date.now() * 0.01) * 3;
                     ctx.beginPath();
@@ -989,7 +1059,7 @@
                 );
                 ctx.stroke();
 
-                // Body Gradation
+                // Body
                 const grad = ctx.createLinearGradient(-this.bodyLength * 0.5, 0, this.bodyLength * 0.5, 0);
                 if (this.isInfected) {
                     grad.addColorStop(0, '#064e3b');
@@ -1008,7 +1078,7 @@
                 ctx.ellipse(0, 0, this.bodyLength * 0.5, this.bodyWidth * 0.5, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Body Segments
+                // Body Segment Lines
                 ctx.strokeStyle = this.isInfected ? '#022c22' : '#231007';
                 ctx.lineWidth = 1;
                 for (let i = -0.3; i <= 0.2; i += 0.15) {
@@ -1037,14 +1107,15 @@
                 return dist < Math.max(this.bodyLength, 20);
             }
         }
+    </script>
 
+    <script>
         class RoachBuffetGame {
             constructor() {
                 this.canvas = document.getElementById('gameCanvas');
                 this.ctx = this.canvas.getContext('2d');
 
                 this.roaches = [];
-                this.maxRoaches = 500;
                 this.snacks = [];
                 this.gelBaits = [];
                 this.gelParticles = [];
@@ -1053,8 +1124,9 @@
                 this.floatingTexts = [];
                 this.splats = [];
 
-                this.activeTool = 'snack';
+                this.activeTool = 'snack'; // 'snack', 'gel', 'spray'
                 this.selectedSnackType = 'cookie';
+                
                 this.selectedSprayColor = 'red';
                 this.sprayColorHex = '#ef4444';
 
@@ -1067,6 +1139,12 @@
                 this.speedMultiplier = 1;
                 this.sizeMultiplier = 1;
 
+                // Breeding Properties
+                this.maxRoaches = 500;
+                this.breedBaseInterval = 10.0;
+                this.breedTimer = 10.0;
+                this.lastFrameTime = performance.now();
+
                 this.devicePixelRatio = window.devicePixelRatio || 1;
                 this.resizeCanvas();
                 window.addEventListener('resize', () => this.resizeCanvas());
@@ -1077,8 +1155,7 @@
                 this.bindInteractions();
 
                 this.spawnRoaches(10);
-                this.startReproductionTimer();
-                requestAnimationFrame(() => this.loop());
+                requestAnimationFrame((t) => this.loop(t));
             }
 
             resizeCanvas() {
@@ -1096,10 +1173,10 @@
             }
 
             spawnRoaches(count) {
-                const availableSlots = this.maxRoaches - this.roaches.length;
-                const spawnAmount = Math.min(count, Math.max(0, availableSlots));
+                const currentCount = this.roaches.length;
+                const toSpawn = Math.min(count, this.maxRoaches - currentCount);
 
-                for (let i = 0; i < spawnAmount; i++) {
+                for (let i = 0; i < toSpawn; i++) {
                     let x, y;
                     if (Math.random() < 0.5) {
                         x = Math.random() < 0.5 ? -20 : window.innerWidth + 20;
@@ -1113,14 +1190,15 @@
                 this.updateStats();
             }
 
-            startReproductionTimer() {
-                if (this.reproTimer) clearInterval(this.reproTimer);
-                this.reproTimer = setInterval(() => {
-                    if (this.roaches.length > 0 && this.roaches.length < this.maxRoaches) {
-                        const newRoaches = Math.ceil(this.roaches.length * 0.25);
-                        this.spawnRoaches(newRoaches);
-                    }
-                }, 5000);
+            breedMultiply() {
+                if (this.roaches.length <= 0 || this.roaches.length >= this.maxRoaches) return;
+                const currentCount = this.roaches.length;
+                const spawnCount = Math.max(1, Math.floor(currentCount * 0.25));
+                this.spawnRoaches(spawnCount);
+            }
+
+            reduceBreedTimer(amount) {
+                this.breedTimer = Math.max(1.0, this.breedTimer - amount);
             }
 
             spawnCrumbs(x, y, color) {
@@ -1172,6 +1250,7 @@
                 this.splats.push(new Splat(roach.x, roach.y, roach.bodyLength * 1.8, '#15803d'));
                 if (this.splats.length > 60) this.splats.shift();
 
+                // Scatter 32 Gel Particles radially over a wide radius
                 for (let k = 0; k < 32; k++) {
                     const angle = (Math.PI * 2 / 32) * k + (Math.random() - 0.5) * 0.2;
                     const speed = 2.5 + Math.random() * 6.5;
@@ -1294,6 +1373,32 @@
             }
 
             bindUI() {
+                // 참고 아코디언 토글 이벤트
+                const btnRef = document.getElementById('btn-ref-accordion');
+                const menuRef = document.getElementById('ref-accordion-menu');
+                const iconChevron = document.getElementById('icon-ref-chevron');
+
+                btnRef.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = menuRef.classList.contains('open');
+                    if (isOpen) {
+                        menuRef.classList.remove('open');
+                        iconChevron.style.transform = 'rotate(0deg)';
+                    } else {
+                        menuRef.classList.add('open');
+                        iconChevron.style.transform = 'rotate(180deg)';
+                    }
+                    sounds.playClick();
+                });
+
+                // 외부 클릭 시 참고 아코디언 닫기
+                document.addEventListener('click', (e) => {
+                    if (!btnRef.contains(e.target) && !menuRef.contains(e.target)) {
+                        menuRef.classList.remove('open');
+                        iconChevron.style.transform = 'rotate(0deg)';
+                    }
+                });
+
                 document.getElementById('tool-btn-snack').addEventListener('click', () => {
                     this.setTool('snack');
                     sounds.playClick();
@@ -1497,6 +1602,7 @@
                     this.sprayParticles = [];
                     this.floatingTexts = [];
                     this.totalEatenCount = 0;
+                    this.breedTimer = this.breedBaseInterval;
                     
                     Object.keys(this.deathsByColor).forEach(k => {
                         this.deathsByColor[k] = 0;
@@ -1523,7 +1629,8 @@
                             statEl.textContent = '🛡️내성';
                             statEl.className = 'stat-res text-[8px] text-sky-400 font-bold animate-pulse';
                         } else {
-                            statEl.textContent = '';
+                            const count = this.deathsByColor[c] || 0;
+                            statEl.textContent = `${count}/10`;
                             statEl.className = 'stat-res text-[8px] opacity-80';
                         }
                     }
@@ -1533,21 +1640,38 @@
             updateStats() {
                 const sSnacks = document.getElementById('stat-snacks');
                 const sRoaches = document.getElementById('stat-roaches');
+                const sTimer = document.getElementById('stat-timer');
                 const sEaten = document.getElementById('stat-eaten');
                 if (sSnacks) sSnacks.textContent = this.snacks.length + this.gelBaits.length;
                 if (sRoaches) sRoaches.textContent = `${this.roaches.length}/${this.maxRoaches}`;
+                if (sTimer) sTimer.textContent = `${this.breedTimer.toFixed(1)}s`;
                 if (sEaten) sEaten.textContent = this.totalEatenCount;
             }
 
-            loop() {
+            loop(timestamp) {
+                const delta = Math.min((timestamp - this.lastFrameTime) / 1000, 0.1);
+                this.lastFrameTime = timestamp;
+
+                // Update Breeding Timer
+                if (this.roaches.length > 0 && this.roaches.length < this.maxRoaches) {
+                    this.breedTimer -= delta;
+                    if (this.breedTimer <= 0) {
+                        this.breedMultiply();
+                        this.breedTimer = this.breedBaseInterval;
+                    }
+                } else {
+                    this.breedTimer = this.breedBaseInterval;
+                }
+                this.updateStats();
+
                 this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-                // 1. Splats
+                // 1. Draw Splats
                 for (let splat of this.splats) {
                     splat.draw(this.ctx);
                 }
 
-                // 2. Snacks & Gel Baits
+                // 2. Update & Draw Snacks & Gel Baits
                 for (let i = this.snacks.length - 1; i >= 0; i--) {
                     const snack = this.snacks[i];
                     snack.update();
@@ -1576,7 +1700,7 @@
                     gel.draw(this.ctx);
                 }
 
-                // 3. Gel Particles & Secondary Infection
+                // 3. Update & Draw Gel Particles (Check 2nd Infection on Roaches)
                 for (let i = this.gelParticles.length - 1; i >= 0; i--) {
                     const gp = this.gelParticles[i];
                     gp.update();
@@ -1592,7 +1716,7 @@
                         if (!roach.isHiding && !roach.isInfected) {
                             const dist = Math.hypot(gp.x - roach.x, gp.y - roach.y);
                             if (dist < gp.radius + roach.bodyLength * 0.5) {
-                                roach.infect();
+                                roach.infect(); // Secondary Infection!
                                 this.gelParticles.splice(i, 1);
                                 break;
                             }
@@ -1600,7 +1724,7 @@
                     }
                 }
 
-                // 4. Pesticide Sprays
+                // 4. Update & Draw Pesticide Spray Particles
                 for (let i = this.sprayParticles.length - 1; i >= 0; i--) {
                     const sp = this.sprayParticles[i];
                     sp.update();
@@ -1653,7 +1777,7 @@
                     }
                 }
 
-                // 5. Cockroaches
+                // 5. Update & Draw Cockroaches
                 const foodList = [...this.snacks, ...this.gelBaits];
                 for (let i = this.roaches.length - 1; i >= 0; i--) {
                     const roach = this.roaches[i];
@@ -1665,7 +1789,7 @@
                     }
                 }
 
-                // 6. Particles
+                // 6. Update & Draw Particles
                 for (let i = this.particles.length - 1; i >= 0; i--) {
                     const particle = this.particles[i];
                     particle.update();
@@ -1676,7 +1800,7 @@
                     }
                 }
 
-                // 7. Floating Texts
+                // 7. Update & Draw Floating Notice Texts
                 for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
                     const ft = this.floatingTexts[i];
                     ft.update();
@@ -1687,7 +1811,7 @@
                     }
                 }
 
-                requestAnimationFrame(() => this.loop());
+                requestAnimationFrame((t) => this.loop(t));
             }
         }
 
