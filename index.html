@@ -2,17 +2,34 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>바퀴벌레 잡기 시뮬레이션 (Roach Simulation)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- SEO & Social Media Meta Tags -->
+    <title>바퀴벌레 시뮬레이션 (Roach Simulation)</title>
+    <meta name="description" content="2D 바퀴벌레 시뮬레이션! 바퀴벌레들을 잡아보세요.">
+    <meta name="keywords" content="바퀴벌레, 시뮬레이션, 게임, 캔버스게임, 시뮬레이터">
+    <meta name="theme-color" content="#0a0a0a">
+
+    <!-- Open Graph (카카오톡, 페이스북, 라인 공유용) -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="바퀴벌레 시뮬레이션 (Roach Simulation)">
+    <meta property="og:description" content="바퀴벌레 생태 시뮬레이터">
+    <meta property="og:image" content="https://fav.farm/🪳">
+
+    <!-- Dynamic SVG Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪳</text></svg>">
+
     <!-- Tailwind CSS for modern responsive UI styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         * {
             user-select: none;
             -webkit-user-select: none;
             touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -20,38 +37,42 @@
             padding: 0;
             overflow: hidden;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #1a1a1a;
+            background-color: #0a0a0a;
             color: #ffffff;
         }
 
-        /* Floor backgrounds */
+        #gameCanvas {
+            touch-action: none; /* 모바일 터치 스크롤 방지 */
+        }
+
+        /* Floor backgrounds - Darkened tones */
         .floor-wood {
-            background-color: #2c1d11;
-            background-image: radial-gradient(#3d2919 15%, transparent 16%),
-                              radial-gradient(#22160d 15%, transparent 16%);
+            background-color: #160e08;
+            background-image: radial-gradient(#24170d 15%, transparent 16%),
+                              radial-gradient(#0d0805 15%, transparent 16%);
             background-size: 60px 60px;
             background-position: 0 0, 30px 30px;
         }
 
         .floor-tile {
-            background-color: #1e293b;
-            background-image: linear-gradient(to right, #0f172a 2px, transparent 2px),
-                              linear-gradient(to bottom, #0f172a 2px, transparent 2px);
+            background-color: #0b101d;
+            background-image: linear-gradient(to right, #04070d 2px, transparent 2px),
+                              linear-gradient(to bottom, #04070d 2px, transparent 2px);
             background-size: 50px 50px;
         }
 
         .floor-tatami {
-            background-color: #2d3728;
-            background-image: repeating-linear-gradient(0deg, #374331, #374331 10px, #2d3728 10px, #2d3728 20px);
+            background-color: #141a12;
+            background-image: repeating-linear-gradient(0deg, #1c2419, #1c2419 10px, #141a12 10px, #141a12 20px);
         }
 
-        /* Glassmorphism UI panel */
+        /* Glassmorphism UI panel - Darker background */
         .glass-panel {
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            background: rgba(8, 12, 22, 0.90);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
         }
 
         /* Light Switch Overlay Effect */
@@ -65,11 +86,11 @@
         }
 
         .light-off {
-            opacity: 0.65;
+            opacity: 0.75;
             background: #000;
         }
 
-        /* Custom scrollbar for control drawers */
+        /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -89,35 +110,53 @@
     <canvas id="gameCanvas" class="absolute inset-0 z-0 cursor-pointer w-full h-full"></canvas>
 
     <!-- Top HUD Navigation & Stats Bar -->
-    <div class="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-end gap-3 pointer-events-none">
+    <div class="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+        
+        <!-- Left Stats Widget -->
+        <div class="glass-panel px-3.5 py-2 rounded-2xl flex items-center gap-3 pointer-events-auto text-xs font-semibold text-slate-300">
+            <div class="flex items-center gap-1.5" title="과자 수">
+                <span class="text-amber-400">🍪</span>
+                <span id="stat-snacks" class="text-white font-bold">0</span>
+            </div>
+            <div class="w-px h-3 bg-slate-800"></div>
+            <div class="flex items-center gap-1.5" title="바퀴벌레 개체수">
+                <span class="text-amber-400">🪳</span>
+                <span id="stat-roaches" class="text-white font-bold">0</span>
+            </div>
+            <div class="w-px h-3 bg-slate-800"></div>
+            <div class="flex items-center gap-1.5" title="먹어치운 과자 총 수">
+                <span class="text-amber-400">✨</span>
+                <span id="stat-eaten" class="text-white font-bold">0</span>
+            </div>
+        </div>
 
         <!-- Right Quick Action Controls -->
         <div class="glass-panel p-1.5 rounded-2xl flex items-center gap-2 pointer-events-auto shadow-lg flex-wrap">
             <!-- Light Switch Button -->
-            <button id="btn-light" class="flex items-center gap-1.5 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-semibold transition active:scale-95" title="전등 스위치 (불을 켜면 바퀴벌레가 도망칩니다!)">
+            <button id="btn-light" class="flex items-center gap-1.5 px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-semibold transition active:scale-95" title="전등 스위치 (불을 켜면 바퀴벌레가 도망칩니다!)" aria-label="불 켜기/끄기">
                 <i id="icon-light" class="fa-solid fa-lightbulb text-amber-400"></i>
                 <span id="label-light">불켜기</span>
             </button>
 
             <!-- Spawn Roach Button -->
-            <button id="btn-add-roach" class="flex items-center gap-1 px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold shadow transition active:scale-95">
+            <button id="btn-add-roach" class="flex items-center gap-1 px-3 py-2 bg-amber-700 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow transition active:scale-95" aria-label="바퀴벌레 추가">
                 <i class="fa-solid fa-plus"></i>
                 <span>바퀴 +1</span>
             </button>
 
             <!-- Clear All Button -->
-            <button id="btn-clear" class="px-3 py-2 bg-rose-600/80 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold shadow transition active:scale-95" title="과자 및 사체 청소">
+            <button id="btn-clear" class="px-3 py-2 bg-rose-900/80 hover:bg-rose-800 text-rose-200 rounded-xl text-xs font-semibold shadow transition active:scale-95" title="과자 및 사체 청소" aria-label="청소하기">
                 <i class="fa-solid fa-broom mr-1"></i>
                 <span>청소</span>
             </button>
 
             <!-- Sound Toggle -->
-            <button id="btn-sound" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs transition active:scale-95" title="음향 효과 켜기/끄기">
+            <button id="btn-sound" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl text-xs transition active:scale-95" title="음향 효과 켜기/끄기" aria-label="음향 켜기/끄기">
                 <i id="icon-sound" class="fa-solid fa-volume-high"></i>
             </button>
 
             <!-- Settings Button -->
-            <button id="btn-toggle-settings" class="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition active:scale-95" title="시뮬레이션 설정">
+            <button id="btn-toggle-settings" class="flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl text-xs font-medium transition active:scale-95" title="시뮬레이션 설정" aria-label="설정 열기">
                 <i class="fa-solid fa-sliders text-amber-400"></i>
                 <span class="hidden md:inline">설정</span>
             </button>
@@ -129,7 +168,7 @@
         
         <!-- Toggle Drawer Handle Button -->
         <div class="flex justify-center pointer-events-auto mb-1">
-            <button id="btn-toggle-drawer" class="bg-slate-900/90 hover:bg-slate-800 text-amber-400 border border-slate-700/80 text-xs px-3 py-1 rounded-t-xl shadow-lg flex items-center gap-1.5 backdrop-blur-md transition active:scale-95" title="도구창 접기/펼치기">
+            <button id="btn-toggle-drawer" class="bg-slate-950/95 hover:bg-slate-900 text-amber-400 border border-slate-800 text-xs px-3 py-1 rounded-t-xl shadow-lg flex items-center gap-1.5 backdrop-blur-md transition active:scale-95" title="도구창 접기/펼치기">
                 <i id="icon-toggle-drawer" class="fa-solid fa-chevron-down text-xs"></i>
                 <span id="label-toggle-drawer" class="text-[10px] font-bold">도구창 접기</span>
             </button>
@@ -138,12 +177,12 @@
         <div class="glass-panel p-3 rounded-3xl flex flex-col gap-2.5 pointer-events-auto shadow-2xl">
 
             <!-- Tool Mode Selection Switcher -->
-            <div id="tool-selector-bar" class="flex items-center justify-center bg-slate-950/70 p-1 rounded-2xl border border-slate-800 gap-1">
+            <div id="tool-selector-bar" class="flex items-center justify-center bg-black/80 p-1 rounded-2xl border border-slate-800 gap-1">
                 <button id="tool-btn-snack" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow">
-                    <span>🍪 과자 놓기</span>
+                    <span>🍪 과자 놓기 모드</span>
                 </button>
                 <button id="tool-btn-spray" class="flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-white">
-                    <span>💨 살충제</span>
+                    <span>💨 살충제 뿌리기 모드</span>
                 </button>
             </div>
 
@@ -154,15 +193,15 @@
                         <span class="text-xl">🍪</span>
                         <span class="text-[10px] font-bold">쿠키</span>
                     </button>
-                    <button data-type="pizza" class="snack-btn p-2 rounded-2xl flex flex-col items-center gap-0.5 transition text-slate-400 hover:bg-slate-800/60 flex-1">
+                    <button data-type="pizza" class="snack-btn p-2 rounded-2xl flex flex-col items-center gap-0.5 transition text-slate-400 hover:bg-slate-900/60 flex-1">
                         <span class="text-xl">🍕</span>
                         <span class="text-[10px] font-bold">피자</span>
                     </button>
-                    <button data-type="donut" class="snack-btn p-2 rounded-2xl flex flex-col items-center gap-0.5 transition text-slate-400 hover:bg-slate-800/60 flex-1">
+                    <button data-type="donut" class="snack-btn p-2 rounded-2xl flex flex-col items-center gap-0.5 transition text-slate-400 hover:bg-slate-900/60 flex-1">
                         <span class="text-xl">🍩</span>
                         <span class="text-[10px] font-bold">도넛</span>
                     </button>
-                    <button id="btn-custom-snack" data-type="custom" class="snack-btn p-2 rounded-2xl flex flex-col items-center gap-0.5 transition text-slate-400 hover:bg-slate-800/60 flex-1" title="클릭하여 내 이미지 업로드">
+                    <button id="btn-custom-snack" data-type="custom" class="snack-btn p-2 rounded-2xl flex flex-col items-center gap-0.5 transition text-slate-400 hover:bg-slate-900/60 flex-1" title="클릭하여 내 이미지 업로드">
                         <span id="custom-snack-icon" class="text-xl flex items-center justify-center h-6 w-6">🖼️</span>
                         <span class="text-[10px] font-bold">내 사진</span>
                     </button>
@@ -182,44 +221,44 @@
                 <!-- 7 Chemical Substance Color Buttons -->
                 <div class="grid grid-cols-7 gap-1" id="spray-color-selector">
                     <!-- Red -->
-                    <button data-color="red" data-hex="#ef4444" class="spray-color-btn active p-1.5 rounded-xl flex flex-col items-center justify-between transition border-2 border-red-400 bg-red-950/60 text-red-300">
+                    <button data-color="red" data-hex="#ef4444" class="spray-color-btn active p-1.5 rounded-xl flex flex-col items-center justify-between transition border-2 border-red-500 bg-red-950/80 text-red-300">
                         <span class="w-3 h-3 rounded-full bg-red-500 shadow"></span>
                         <span class="text-[9px] font-bold mt-1">빨강</span>
                         <span class="stat-res text-[8px] opacity-80"></span>
                     </button>
                     <!-- Orange -->
-                    <button data-color="orange" data-hex="#f97316" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-700 bg-slate-900/60 text-slate-400">
+                    <button data-color="orange" data-hex="#f97316" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400">
                         <span class="w-3 h-3 rounded-full bg-orange-500 shadow"></span>
                         <span class="text-[9px] font-bold mt-1">주황</span>
                         <span class="stat-res text-[8px] opacity-80"></span>
                     </button>
                     <!-- Yellow -->
-                    <button data-color="yellow" data-hex="#eab308" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-700 bg-slate-900/60 text-slate-400">
+                    <button data-color="yellow" data-hex="#eab308" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400">
                         <span class="w-3 h-3 rounded-full bg-yellow-400 shadow"></span>
                         <span class="text-[9px] font-bold mt-1">노랑</span>
                         <span class="stat-res text-[8px] opacity-80"></span>
                     </button>
                     <!-- Green -->
-                    <button data-color="green" data-hex="#22c55e" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-700 bg-slate-900/60 text-slate-400">
+                    <button data-color="green" data-hex="#22c55e" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400">
                         <span class="w-3 h-3 rounded-full bg-green-500 shadow"></span>
                         <span class="text-[9px] font-bold mt-1">초록</span>
                         <span class="stat-res text-[8px] opacity-80"></span>
                     </button>
                     <!-- Blue -->
-                    <button data-color="blue" data-hex="#3b82f6" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-700 bg-slate-900/60 text-slate-400">
+                    <button data-color="blue" data-hex="#3b82f6" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400">
                         <span class="w-3 h-3 rounded-full bg-blue-500 shadow"></span>
                         <span class="text-[9px] font-bold mt-1">파랑</span>
                         <span class="stat-res text-[8px] opacity-80"></span>
                     </button>
                     <!-- Purple -->
-                    <button data-color="purple" data-hex="#a855f7" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-700 bg-slate-900/60 text-slate-400">
+                    <button data-color="purple" data-hex="#a855f7" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400">
                         <span class="w-3 h-3 rounded-full bg-purple-500 shadow"></span>
                         <span class="text-[9px] font-bold mt-1">보라</span>
                         <span class="stat-res text-[8px] opacity-80"></span>
                     </button>
                     <!-- Black (Special) -->
-                    <button data-color="black" data-hex="#18181b" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-700 bg-slate-900/60 text-slate-400" title="바퀴벌레가 내성을 가질 수 없는 특수 물질!">
-                        <span class="w-3 h-3 rounded-full bg-zinc-900 border border-zinc-500 shadow"></span>
+                    <button data-color="black" data-hex="#18181b" class="spray-color-btn p-1.5 rounded-xl flex flex-col items-center justify-between transition border border-slate-800 bg-slate-950/80 text-slate-400" title="바퀴벌레가 내성을 가질 수 없는 특수 물질!">
+                        <span class="w-3 h-3 rounded-full bg-zinc-900 border border-zinc-600 shadow"></span>
                         <span class="text-[9px] font-bold mt-1 text-zinc-300">검정</span>
                         <span class="stat-res text-[8px] text-rose-400 font-bold">☠️위험</span>
                     </button>
@@ -230,13 +269,13 @@
     </div>
 
     <!-- Detailed Settings Modal Drawer -->
-    <div id="settings-modal" class="hidden absolute inset-0 z-30 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl border border-slate-700 animate-in fade-in zoom-in duration-150">
-            <div class="flex items-center justify-between pb-2 border-b border-slate-700">
+    <div id="settings-modal" class="hidden absolute inset-0 z-30 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl border border-slate-800 animate-in fade-in zoom-in duration-150">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                 <h3 class="font-bold text-amber-400 text-base flex items-center gap-2">
                     <i class="fa-solid fa-sliders"></i> 시뮬레이션 설정
                 </h3>
-                <button id="btn-close-settings" class="text-slate-400 hover:text-white p-1">
+                <button id="btn-close-settings" class="text-slate-400 hover:text-white p-1" aria-label="설정 닫기">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
@@ -263,15 +302,15 @@
             <div class="space-y-1.5">
                 <label class="text-xs text-slate-300">바닥 재질 선택</label>
                 <div class="grid grid-cols-3 gap-2">
-                    <button data-floor="wood" class="floor-opt border-2 border-amber-400 text-xs py-1.5 rounded-xl bg-amber-950/40 text-amber-200">원목 바닥</button>
-                    <button data-floor="tile" class="floor-opt border border-slate-700 text-xs py-1.5 rounded-xl bg-slate-800 text-slate-300">타일 바닥</button>
-                    <button data-floor="tatami" class="floor-opt border border-slate-700 text-xs py-1.5 rounded-xl bg-green-950/40 text-green-200">다타미</button>
+                    <button data-floor="wood" class="floor-opt border-2 border-amber-400 text-xs py-1.5 rounded-xl bg-amber-950/60 text-amber-200">원목 바닥</button>
+                    <button data-floor="tile" class="floor-opt border border-slate-800 text-xs py-1.5 rounded-xl bg-slate-900 text-slate-300">타일 바닥</button>
+                    <button data-floor="tatami" class="floor-opt border border-slate-800 text-xs py-1.5 rounded-xl bg-green-950/60 text-green-200">다타미</button>
                 </div>
             </div>
 
             <!-- Reset Action -->
             <div class="pt-2">
-                <button id="btn-reset-all" class="w-full py-2 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-300 rounded-xl text-xs font-semibold transition">
+                <button id="btn-reset-all" class="w-full py-2 bg-rose-900/40 hover:bg-rose-900/70 border border-rose-800/60 text-rose-300 rounded-xl text-xs font-semibold transition">
                     전체 초기화 (리셋)
                 </button>
             </div>
@@ -489,6 +528,7 @@
             draw(ctx) {
                 if (this.radius <= 0) return;
                 ctx.save();
+                ctx.globalAlpha = 1.0;
                 ctx.translate(this.x, this.y);
                 ctx.scale(this.scale, this.scale);
 
@@ -497,7 +537,7 @@
                 const ry = Math.max(0.1, this.radius * 0.4);
                 ctx.beginPath();
                 ctx.ellipse(2, this.radius * 0.6, rx, ry, 0, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
                 ctx.fill();
 
                 // Draw Custom Uploaded Image or Emoji Snack
@@ -516,7 +556,7 @@
                 }
 
                 // Draw bite mark cutouts over snack
-                ctx.fillStyle = 'rgba(30, 20, 10, 0.85)';
+                ctx.fillStyle = '#0a0a0a';
                 for (let bite of this.bites) {
                     ctx.beginPath();
                     ctx.arc(bite.rx, bite.ry, Math.max(0.1, bite.r), 0, Math.PI * 2);
@@ -535,20 +575,23 @@
                 this.colorKey = colorKey;
                 this.hex = hex;
                 const angle = Math.random() * Math.PI * 2;
-                const speed = 1.5 + Math.random() * 4.5;
+                const speed = 1.0 + Math.random() * 3.5;
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
-                this.radius = 4 + Math.random() * 8;
-                this.alpha = 0.75;
-                this.decay = 0.02 + Math.random() * 0.025;
+                this.radius = 5 + Math.random() * 6;
+                this.maxRadius = 18 + Math.random() * 15;
+                this.alpha = 0.7;
+                this.decay = 0.00115;
             }
 
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
-                this.vx *= 0.94;
-                this.vy *= 0.94;
-                this.radius += 0.3;
+                this.vx *= 0.92;
+                this.vy *= 0.92;
+                if (this.radius < this.maxRadius) {
+                    this.radius += 0.15;
+                }
                 this.alpha -= this.decay;
             }
 
@@ -625,7 +668,7 @@
 
         /* Squished / Poisoned Roach Splat Effect */
         class Splat {
-            constructor(x, y, size, color = '#4d7c0f') {
+            constructor(x, y, size, color = '#23330b') {
                 this.x = x;
                 this.y = y;
                 this.size = Math.max(1, size);
@@ -718,19 +761,16 @@
 
                 // AI Decision Logic
                 if (this.state === 'FLEE') {
-                    // Move towards closest boundary edge
                     let targetX = this.x < window.innerWidth / 2 ? -100 : window.innerWidth + 100;
                     let targetY = this.y < window.innerHeight / 2 ? -100 : window.innerHeight + 100;
                     this.targetAngle = Math.atan2(targetY - this.y, targetX - this.x);
-                    this.speed = effectiveSpeed * 1.8; // Panicked sprint speed
+                    this.speed = effectiveSpeed * 1.8;
 
-                    // Flag as hiding when off screen
                     if (this.x < -40 || this.x > window.innerWidth + 40 || this.y < -40 || this.y > window.innerHeight + 40) {
                         this.isHiding = true;
                     }
                 } 
                 else if (snacks.length > 0) {
-                    // Find closest available snack
                     let closest = null;
                     let minDist = Infinity;
 
@@ -746,19 +786,16 @@
                         this.targetSnack = closest;
                         const distToSnack = Math.hypot(closest.x - this.x, closest.y - this.y);
 
-                        // If close enough to snack -> Start EATING
                         if (distToSnack < closest.radius + this.bodyLength * 0.5) {
                             this.state = 'EATING';
                             this.speed = 0;
                             this.eatTimer++;
 
-                            // Eat & nibble logic
                             if (this.eatTimer % 8 === 0) {
                                 closest.hp -= 2.5;
                                 closest.addBiteMark(this.x, this.y);
                                 sounds.playCrunch();
 
-                                // Return crumbs particles
                                 if (window.gameInstance) {
                                     window.gameInstance.spawnCrumbs(this.x, this.y, closest.info.crumbs);
                                 }
@@ -776,7 +813,6 @@
                     }
                 } 
                 else {
-                    // Default WANDER behavior
                     this.state = 'WANDER';
                     this.speed = effectiveSpeed * 0.7;
 
@@ -787,7 +823,7 @@
                     this.targetAngle = Math.atan2(this.wanderTarget.y - this.y, this.wanderTarget.x - this.x);
                 }
 
-                // Smooth Rotation Math (Shortest rotation delta)
+                // Smooth Rotation Math
                 let diff = this.targetAngle - this.angle;
                 while (diff < -Math.PI) diff += Math.PI * 2;
                 while (diff > Math.PI) diff -= Math.PI * 2;
@@ -795,19 +831,16 @@
 
                 // Move forward if moving
                 if (this.speed > 0) {
-                    // Slight jitter/wiggle when crawling
                     const jitter = (Math.random() - 0.5) * 0.1;
                     this.x += Math.cos(this.angle + jitter) * this.speed;
                     this.y += Math.sin(this.angle + jitter) * this.speed;
 
-                    // Leg walking animation phase update
                     this.legPhase += this.speed * 0.35;
                 }
 
-                // Antennae continuous wiggle
                 this.antennaWiggle += 0.15;
 
-                // Screen Boundary Clamping (wrap or bounce if wandering)
+                // Screen Boundary Clamping
                 if (this.state !== 'FLEE') {
                     const margin = 10;
                     if (this.x < margin) this.x = margin;
@@ -827,10 +860,10 @@
                 const shadowRx = Math.max(0.1, this.bodyLength * 0.55);
                 const shadowRy = Math.max(0.1, this.bodyWidth * 0.6);
                 ctx.ellipse(0, 3, shadowRx, shadowRy, 0, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.fillStyle = 'rgba(0,0,0,0.45)';
                 ctx.fill();
 
-                // Draw Legs (6 Legs, 3 per side) - 90% Reduced Short Legs
+                // Draw Legs
                 ctx.strokeStyle = '#2d1810';
                 ctx.lineWidth = Math.max(1.0, 1.2 * (this.bodyLength / 18));
                 ctx.lineCap = 'round';
@@ -867,11 +900,10 @@
                     ctx.stroke();
                 }
 
-                // Draw Antennae (2 wiggling whiskers - 30% shortened)
+                // Draw Antennae
                 ctx.strokeStyle = '#3e1f13';
                 ctx.lineWidth = 1;
 
-                // Left Antenna
                 ctx.beginPath();
                 ctx.moveTo(this.bodyLength * 0.45, -this.bodyWidth * 0.2);
                 ctx.quadraticCurveTo(
@@ -882,7 +914,6 @@
                 );
                 ctx.stroke();
 
-                // Right Antenna
                 ctx.beginPath();
                 ctx.moveTo(this.bodyLength * 0.45, this.bodyWidth * 0.2);
                 ctx.quadraticCurveTo(
@@ -929,7 +960,6 @@
                 ctx.restore();
             }
 
-            // Check if point hits cockroach
             isPointInside(px, py) {
                 const dist = Math.hypot(px - this.x, py - this.y);
                 return dist < Math.max(this.bodyLength, 20);
@@ -943,7 +973,7 @@
                 this.canvas = document.getElementById('gameCanvas');
                 this.ctx = this.canvas.getContext('2d');
 
-                // Game Entities
+                // Entity Collections
                 this.roaches = [];
                 this.snacks = [];
                 this.particles = [];
@@ -960,24 +990,8 @@
                 this.sprayColorHex = '#ef4444';
 
                 // Chemical Death Counters & Resistance Status
-                this.deathsByColor = {
-                    red: 0,
-                    orange: 0,
-                    yellow: 0,
-                    green: 0,
-                    blue: 0,
-                    purple: 0,
-                    black: 0
-                };
-                this.resistantColors = {
-                    red: false,
-                    orange: false,
-                    yellow: false,
-                    green: false,
-                    blue: false,
-                    purple: false,
-                    black: false
-                };
+                this.deathsByColor = { red: 0, orange: 0, yellow: 0, green: 0, blue: 0, purple: 0, black: 0 };
+                this.resistantColors = { red: false, orange: false, yellow: false, green: false, blue: false, purple: false, black: false };
 
                 this.isLightOn = false;
                 this.totalEatenCount = 0;
@@ -986,17 +1000,16 @@
                 this.speedMultiplier = 1;
                 this.sizeMultiplier = 1;
 
-                // Initialize Canvas Size
+                // High DPI Retina Display Scaling Handling
+                this.devicePixelRatio = window.devicePixelRatio || 1;
                 this.resizeCanvas();
                 window.addEventListener('resize', () => this.resizeCanvas());
 
-                // Expose global instance for callbacks
+                // Expose global instance
                 window.gameInstance = this;
 
-                // Bind UI Elements & Events
+                // Bind UI Elements & Touch/Mouse Interactions
                 this.bindUI();
-
-                // Mouse / Touch Interaction Pointer Tracking
                 this.bindInteractions();
 
                 // Spawn initial cockroach colony
@@ -1007,8 +1020,17 @@
             }
 
             resizeCanvas() {
-                this.canvas.width = window.innerWidth;
-                this.canvas.height = window.innerHeight;
+                this.devicePixelRatio = window.devicePixelRatio || 1;
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+
+                this.canvas.width = width * this.devicePixelRatio;
+                this.canvas.height = height * this.devicePixelRatio;
+                this.canvas.style.width = width + 'px';
+                this.canvas.style.height = height + 'px';
+
+                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                this.ctx.scale(this.devicePixelRatio, this.devicePixelRatio);
             }
 
             spawnRoaches(count) {
@@ -1030,54 +1052,61 @@
                 for (let i = 0; i < 3; i++) {
                     this.particles.push(new Particle(x, y, color, 3));
                 }
+                if (this.particles.length > 120) {
+                    this.particles.shift();
+                }
             }
 
-            // Check spray and direct hit on roaches
-            checkRoachSprayHit(roach, rIdx, x, y) {
-                const cKey = this.selectedSprayColor;
+            checkRoachSprayHit(roach, rIdx, x, y, customColor = null) {
+                const colorHex = customColor || this.sprayColorHex;
+                const cKey = customColor ? 'green' : this.selectedSprayColor;
 
-                if (cKey !== 'black' && this.resistantColors[cKey]) {
+                if (!customColor && cKey !== 'black' && this.resistantColors[cKey]) {
                     const now = Date.now();
                     if (now - roach.lastImmunityNoticeTime > 1200) {
                         roach.lastImmunityNoticeTime = now;
                         this.floatingTexts.push(new FloatingText(roach.x, roach.y - 12, '🛡️ 내성!', '#38bdf8'));
                     }
                 } else {
-                    this.splats.push(new Splat(roach.x, roach.y, roach.bodyLength, this.sprayColorHex));
+                    this.splats.push(new Splat(roach.x, roach.y, roach.bodyLength, colorHex));
+                    
+                    if (this.splats.length > 60) {
+                        this.splats.shift();
+                    }
+
                     this.roaches.splice(rIdx, 1);
                     sounds.playSquish();
 
                     for (let p = 0; p < 8; p++) {
-                        this.particles.push(new Particle(roach.x, roach.y, this.sprayColorHex, 4));
+                        this.particles.push(new Particle(roach.x, roach.y, colorHex, 4));
                     }
 
-                    this.deathsByColor[cKey]++;
+                    if (!customColor) {
+                        this.deathsByColor[cKey]++;
 
-                    if (cKey !== 'black' && this.deathsByColor[cKey] >= 10 && !this.resistantColors[cKey]) {
-                        this.resistantColors[cKey] = true;
-                        this.floatingTexts.push(new FloatingText(roach.x, roach.y - 20, '⚠️ 군집 내성 획득!', '#f59e0b'));
+                        if (cKey !== 'black' && this.deathsByColor[cKey] >= 10 && !this.resistantColors[cKey]) {
+                            this.resistantColors[cKey] = true;
+                            this.floatingTexts.push(new FloatingText(roach.x, roach.y - 20, '⚠️ 군집 내성 획득!', '#f59e0b'));
+                        }
+
+                        this.updateResistanceUI();
                     }
-
-                    this.updateResistanceUI();
                     this.updateStats();
                 }
             }
 
-            // SEPARATED INTERACTION: Execute action depending on active tool
             handleInteraction(clientX, clientY) {
                 if (this.activeTool === 'snack') {
                     let squishedAny = false;
 
-                    // Check direct tap on cockroach
                     for (let i = this.roaches.length - 1; i >= 0; i--) {
                         if (!this.roaches[i].isHiding && this.roaches[i].isPointInside(clientX, clientY)) {
-                            this.checkRoachSprayHit(this.roaches[i], i, clientX, clientY);
+                            this.checkRoachSprayHit(this.roaches[i], i, clientX, clientY, '#23330b');
                             squishedAny = true;
                             break;
                         }
                     }
 
-                    // Drop Snack on floor without emitting pesticide spray
                     if (!squishedAny) {
                         const newSnack = new Snack(clientX, clientY, this.selectedSnackType);
                         this.snacks.push(newSnack);
@@ -1088,10 +1117,8 @@
                         }
                     }
                 } else if (this.activeTool === 'spray') {
-                    // Emit spray particles only
                     this.emitSpray(clientX, clientY);
 
-                    // Check spray contact hits
                     for (let i = this.roaches.length - 1; i >= 0; i--) {
                         if (!this.roaches[i].isHiding && this.roaches[i].isPointInside(clientX, clientY)) {
                             this.checkRoachSprayHit(this.roaches[i], i, clientX, clientY);
@@ -1136,15 +1163,16 @@
                 window.addEventListener('pointercancel', () => { isPointerDown = false; });
             }
 
-            // Emit Pesticide Spray Aerosol Particles
             emitSpray(x, y) {
                 sounds.playSpray();
-                for (let i = 0; i < 4; i++) {
+                for (let i = 0; i < 3; i++) {
                     this.sprayParticles.push(new SprayParticle(x, y, this.selectedSprayColor, this.sprayColorHex));
+                }
+                if (this.sprayParticles.length > 600) {
+                    this.sprayParticles.splice(0, this.sprayParticles.length - 600);
                 }
             }
 
-            // Helper method to set active tool UI highlight
             setTool(tool) {
                 this.activeTool = tool;
                 const btnSnack = document.getElementById('tool-btn-snack');
@@ -1177,14 +1205,14 @@
                         const target = e.currentTarget;
                         sprayColorBtns.forEach(b => {
                             b.classList.remove('active', 'border-2', 'border-amber-400', 'bg-amber-950/60');
-                            b.classList.add('border-slate-700', 'bg-slate-900/60');
+                            b.classList.add('border-slate-800', 'bg-slate-950/80');
                         });
                         target.classList.add('active', 'border-2', 'border-amber-400');
-                        target.classList.remove('border-slate-700');
+                        target.classList.remove('border-slate-800');
 
                         this.selectedSprayColor = target.dataset.color;
                         this.sprayColorHex = target.dataset.hex;
-                        this.setTool('spray'); // Switch automatically to spray mode when selecting color
+                        this.setTool('spray');
                         sounds.playClick();
                     });
                 });
@@ -1214,14 +1242,12 @@
                         target.classList.remove('text-slate-400');
 
                         this.selectedSnackType = target.dataset.type;
-                        this.setTool('snack'); // Switch automatically to snack mode when selecting snack
+                        this.setTool('snack');
                         sounds.playClick();
                     });
                 });
 
-                customBtn.addEventListener('dblclick', () => {
-                    fileInput.click();
-                });
+                customBtn.addEventListener('dblclick', () => { fileInput.click(); });
 
                 fileInput.addEventListener('change', (e) => {
                     const file = e.target.files[0];
@@ -1354,10 +1380,10 @@
                     opt.addEventListener('click', (e) => {
                         floorOpts.forEach(o => {
                             o.classList.remove('border-2', 'border-amber-400');
-                            o.classList.add('border-slate-700');
+                            o.classList.add('border-slate-800');
                         });
                         e.target.classList.add('border-2', 'border-amber-400');
-                        e.target.classList.remove('border-slate-700');
+                        e.target.classList.remove('border-slate-800');
 
                         gameBody.className = `floor-${e.target.dataset.floor} relative w-screen h-screen overflow-hidden select-none`;
                         sounds.playClick();
@@ -1374,7 +1400,6 @@
                     this.floatingTexts = [];
                     this.totalEatenCount = 0;
                     
-                    // Reset resistance counters
                     Object.keys(this.deathsByColor).forEach(k => {
                         this.deathsByColor[k] = 0;
                         this.resistantColors[k] = false;
@@ -1387,7 +1412,6 @@
                 });
             }
 
-            // Update UI Resistance Status Badges
             updateResistanceUI() {
                 const colorBtns = document.querySelectorAll('.spray-color-btn');
                 colorBtns.forEach(btn => {
@@ -1419,9 +1443,9 @@
 
             loop() {
                 // Clear Canvas Frame
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-                // 1. Draw Splats (Dead Roaches)
+                // 1. Draw Splats
                 for (let splat of this.splats) {
                     splat.draw(this.ctx);
                 }
@@ -1452,7 +1476,6 @@
                         continue;
                     }
 
-                    // Check collision with cockroaches
                     for (let rIdx = this.roaches.length - 1; rIdx >= 0; rIdx--) {
                         const roach = this.roaches[rIdx];
                         if (roach.isHiding) continue;
@@ -1461,7 +1484,6 @@
                         if (dist < sp.radius + roach.bodyLength * 0.5) {
                             const cKey = sp.colorKey;
 
-                            // RESISTANCE CHECK: If resistant and NOT black chemical -> Immune!
                             if (cKey !== 'black' && this.resistantColors[cKey]) {
                                 const now = Date.now();
                                 if (now - roach.lastImmunityNoticeTime > 1200) {
@@ -1469,20 +1491,18 @@
                                     this.floatingTexts.push(new FloatingText(roach.x, roach.y - 12, '🛡️ 내성!', '#38bdf8'));
                                 }
                             } else {
-                                // Poison death!
                                 this.splats.push(new Splat(roach.x, roach.y, roach.bodyLength, sp.hex));
+                                if (this.splats.length > 60) this.splats.shift();
+
                                 this.roaches.splice(rIdx, 1);
                                 sounds.playSquish();
 
-                                // Poison blood particles
                                 for (let p = 0; p < 8; p++) {
                                     this.particles.push(new Particle(roach.x, roach.y, sp.hex, 4));
                                 }
 
-                                // Increment death count for this chemical substance
                                 this.deathsByColor[cKey]++;
 
-                                // Check if resistance reached (10 deaths threshold), EXCEPT Black
                                 if (cKey !== 'black' && this.deathsByColor[cKey] >= 10 && !this.resistantColors[cKey]) {
                                     this.resistantColors[cKey] = true;
                                     this.floatingTexts.push(new FloatingText(roach.x, roach.y - 20, '⚠️ 군집 내성 획득!', '#f59e0b'));
@@ -1492,7 +1512,6 @@
                                 this.updateStats();
                             }
                             
-                            // Remove spray particle on contact
                             this.sprayParticles.splice(i, 1);
                             break;
                         }
