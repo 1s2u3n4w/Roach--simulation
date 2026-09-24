@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>바퀴벌레 예방법</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+    <!-- Top Navigation -->
+    <header class="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-2 text-amber-400 font-bold hover:text-amber-300 transition">
+                <i class="fa-solid fa-gamepad text-lg"></i>
+                <span>시뮬레이션으로 돌아가기</span>
+            </a>
+            <span class="text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-full">탐구 백과 3탄</span>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 mt-8 space-y-8">
+        <section class="text-center space-y-3">
+            <div class="inline-block text-5xl mb-2 animate-bounce">🧹</div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-emerald-400">우리 집 바퀴벌레 철통 방어 작전!</h1>
+            <p class="text-slate-300 text-sm sm:text-base max-w-xl mx-auto">
+                바퀴벌레가 우리 집에 놀러 오지 못하게 만드는 4가지 생활 습관을 알아봅시다.
+            </p>
+        </section>
+
+        <!-- Prevention Golden Rules -->
+        <div class="space-y-3">
+            
+            <!-- Rule 1 -->
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 flex items-center gap-4">
+                <span class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 font-extrabold flex items-center justify-center text-lg flex-shrink-0">1</span>
+                <div>
+                    <h3 class="font-bold text-slate-200 text-sm sm:text-base">과자 가루는 청소하기 🍪</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">바퀴벌레는 작은 바삭한 가루 하나도 찾아내요.과자 가루는 바로 치워요!</p>
+                </div>
+            </div>
+
+            <!-- Rule 2 -->
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 flex items-center gap-4">
+                <span class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 font-extrabold flex items-center justify-center text-lg flex-shrink-0">2</span>
+                <div>
+                    <h3 class="font-bold text-slate-200 text-sm sm:text-base">싱크대 물기 닦기 💧</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">바퀴벌레는 음식 없이도 물만 있으면 한 달 동안 살 수 있어요! 밤에는 싱크대 물기를 마른 닦개로 닦아주세요.</p>
+                </div>
+            </div>
+
+            <!-- Rule 3 -->
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 flex items-center gap-4">
+                <span class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 font-extrabold flex items-center justify-center text-lg flex-shrink-0">3</span>
+                <div>
+                    <h3 class="font-bold text-slate-200 text-sm sm:text-base">택배 상자는 바로 정리하기 📦</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">골판지 상자 사이 틈은 바퀴벌레가 가장 좋아하는 아파트예요! 택배 상자는 꺼내고 바로 버리는 것이 좋아요.</p>
+                </div>
+            </div>
+
+            <!-- Rule 4 -->
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 flex items-center gap-4">
+                <span class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 font-extrabold flex items-center justify-center text-lg flex-shrink-0">4</span>
+                <div>
+                    <h3 class="font-bold text-slate-200 text-sm sm:text-base">작은 구멍과 틈새 막기</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">바퀴벌레는 몸이 아주 납작해서 동전 하나 들어갈 틈만 있어도 지나갈 수 있어요. 방충망 틈을 메워주세요.</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Interactive Home Defense Score Checklist -->
+        <section class="bg-slate-800/90 border border-emerald-500/30 rounded-3xl p-6 space-y-4">
+            <h2 class="text-lg font-bold text-emerald-400 flex items-center gap-2">
+                <i class="fa-solid fa-square-check"></i> 우리 집 바퀴벌레 방어 점수 체크!
+            </h2>
+            <p class="text-xs text-slate-300">오늘 실천한 항목에 체크해보세요!</p>
+
+            <div class="space-y-2 text-xs">
+                <label class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl cursor-pointer hover:bg-slate-900 transition">
+                    <input type="checkbox" class="chk-item w-4 h-4 accent-emerald-500 rounded" onchange="updateDefenseScore()">
+                    <span>오늘 과자나 음식을 먹고 바로 정리했다.</span>
+                </label>
+                <label class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl cursor-pointer hover:bg-slate-900 transition">
+                    <input type="checkbox" class="chk-item w-4 h-4 accent-emerald-500 rounded" onchange="updateDefenseScore()">
+                    <span>음식물 쓰레기통 뚜껑을 잘 닫아두었다.</span>
+                </label>
+                <label class="flex items-center gap-3 bg-slate-900/60 p-3 rounded-xl cursor-pointer hover:bg-slate-900 transition">
+                    <input type="checkbox" class="chk-item w-4 h-4 accent-emerald-500 rounded" onchange="updateDefenseScore()">
+                    <span>방에 오래된 종이 박스를 오래 방치하지 않았다.</span>
+                </label>
+            </div>
+
+            <div class="pt-2 flex items-center justify-between border-t border-slate-700/60">
+                <span class="text-xs text-slate-400">우리 집 방어 등급:</span>
+                <span id="defense-rating" class="text-sm font-bold text-amber-400">체크해보세요!</span>
+            </div>
+        </section>
+
+        <!-- Navigation Footer -->
+        <div class="flex justify-between items-center pt-4 text-xs font-semibold text-slate-400">
+            <a href="pesticide.html" class="text-slate-300 hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>이전: 살충제의 원리</span>
+            </a>
+            <a href="index.html" class="text-amber-400 hover:underline flex items-center gap-1">
+                <span>게임 시뮬레이션으로 가기</span>
+                <i class="fa-solid fa-gamepad"></i>
+            </a>
+        </div>
+    </main>
+
+    <script>
+        function updateDefenseScore() {
+            const checkedCount = document.querySelectorAll('.chk-item:checked').length;
+            const ratingEl = document.getElementById('defense-rating');
+
+            if (checkedCount === 3) {
+                ratingEl.textContent = "🏆 완벽한 철통 보안!";
+                ratingEl.className = "text-sm font-bold text-emerald-400 animate-pulse";
+            } else if (checkedCount >= 1) {
+                ratingEl.textContent = "🛡️ 참 잘하고 있어요!";
+                ratingEl.className = "text-sm font-bold text-amber-400";
+            } else {
+                ratingEl.textContent = "체크해보세요!";
+                ratingEl.className = "text-sm font-bold text-slate-400";
+            }
+        }
+    </script>
+</body>
+</html>
